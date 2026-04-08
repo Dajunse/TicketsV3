@@ -185,10 +185,10 @@ npm run build
 npm run start
 ```
 
-6. Antes del primer arranque, ejecutar migraciones (Railway Shell o job):
+6. Antes del primer arranque, ejecutar migraciones de produccion (Railway Shell o deploy command):
 
 ```bash
-npm run prisma:migrate
+npm run prisma:migrate:deploy
 ```
 
 ## 10) Roadmap por Fases
