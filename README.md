@@ -1,36 +1,210 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# TianMake Client Portal (MVP)
 
-## Getting Started
+Portal SaaS multi-tenant para gestionar actividades, tickets, documentos y notas seguras por cliente en una sola plataforma.
 
-First, run the development server:
+## 1) Arquitectura General
+
+- **Frontend + Backend:** Next.js (App Router, Server Actions)
+- **Lenguaje:** TypeScript
+- **Estilos:** Tailwind CSS v4
+- **Base de datos:** PostgreSQL
+- **ORM:** Prisma
+- **Auth:** Sistema de sesión propio (cookie HttpOnly + hash de token en DB + bcrypt para passwords)
+- **Deploy objetivo:** Railway
+
+### Capas
+
+- `src/app`: rutas UI y vistas
+- `src/actions`: acciones de servidor para CRUD/control
+- `src/lib`: utilidades de auth, tenant, cifrado y seguridad
+- `prisma`: schema y seed
+
+## 2) Modelo de Datos (resumen)
+
+Entidades clave:
+
+- `User` (ADMIN / CLIENT)
+- `Client`
+- `ClientUser` (relación multi-tenant usuario-cliente)
+- `ServiceCatalog`
+- `ClientService`
+- `Activity`
+- `Ticket`
+- `TicketMessage`
+- `Document`
+- `SecureNote` (cifrada con AES-256-GCM)
+- `PublicTicketSubmissionLog` (rate limiting)
+- `Session` (sesiones seguras)
+
+Ver detalle en `prisma/schema.prisma`.
+
+## 3) Estrategia Multi-tenant
+
+- Toda entidad operativa (`Activity`, `Ticket`, `Document`, `SecureNote`, etc.) guarda `clientId`.
+- Usuarios cliente acceden solo a clientes asociados en `ClientUser`.
+- Admin global puede ver y operar todos los clientes.
+- Validaciones de tenant en server actions para evitar cruces entre clientes.
+
+## 4) URL Pública de Tickets sin Login
+
+Ruta:
+
+- `/support/[slug]/[token]`
+
+Seguridad aplicada:
+
+- `slug` legible por cliente (`publicTicketSlug`)
+- `token` privado y largo (no legible)
+- En DB se guarda **hash SHA-256** del token (`publicTicketTokenHash`)
+- Honeypot oculto anti-bot
+- Rate limiting por IP + ventana de tiempo (`PublicTicketSubmissionLog`)
+- La vista pública solo permite crear ticket, no consultar historial ni datos privados
+
+## 5) Propuesta Tipográfica y UI
+
+- **Títulos:** `Lexend` (`--font-title`)
+- **Texto general:** `IBM Plex Sans` (`--font-sans`)
+- **Tablas/Formularios técnicos:** `IBM Plex Mono` (`--font-mono`)
+
+Dirección visual:
+
+- Fondo negro, texto blanco, grises neutros
+- Tarjetas simples, espaciamiento amplio
+- Navegación limpia, enfoque ejecutivo
+- Sin saturación visual
+
+## 6) Funcionalidad MVP incluida
+
+- Login por correo/contraseña
+- Sesiones seguras
+- Dashboard con resumen
+- Módulo de actividades (listar + crear/admin + cambio de estado/admin)
+- Módulo de tickets (portal autenticado + respuestas + estado/admin)
+- Ruta pública por cliente para crear tickets sin login
+- Módulo de documentos (listar + alta metadata/admin)
+- Panel admin base:
+  - crear clientes
+  - crear usuarios cliente
+  - catálogo de servicios
+  - asignar servicios
+  - notas/credenciales cifradas
+
+## 7) Estructura de Carpetas
+
+```txt
+src/
+  app/
+    (auth)/login
+    (portal)/dashboard
+    (portal)/activities
+    (portal)/tickets
+    (portal)/documents
+    (portal)/admin
+    support/[slug]/[token]
+  actions/
+    auth-actions.ts
+    activity-actions.ts
+    ticket-actions.ts
+    admin-actions.ts
+  components/
+    app-shell.tsx
+    login-form.tsx
+    public-ticket-form.tsx
+    page-title.tsx
+    status-badge.tsx
+  lib/
+    auth.ts
+    tenant.ts
+    crypto.ts
+    public-ticket.ts
+    prisma.ts
+prisma/
+  schema.prisma
+  seed.ts
+```
+
+## 8) Instalación Local
+
+1. Instalar dependencias:
+
+```bash
+npm install
+```
+
+2. Configurar `.env` (usa `.env.example` como base).
+
+3. Ejecutar migraciones:
+
+```bash
+npm run prisma:migrate
+```
+
+4. Generar cliente Prisma (si hace falta):
+
+```bash
+npm run prisma:generate
+```
+
+5. Poblar datos demo:
+
+```bash
+npm run prisma:seed
+```
+
+6. Levantar app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Credenciales demo del seed:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Admin: `admin@tianmake.studio` / `Admin12345!`
+- Cliente Blair: `equipo@blair.com` / `Cliente12345!`
+- Cliente Newell: `soporte@newell.com` / `Cliente12345!`
+- URL pública Blair: `/support/blair/blair-support-link-2026`
+- URL pública Newell: `/support/newell/newell-support-link-2026`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 9) Deploy en Railway
 
-## Learn More
+1. Crear proyecto en Railway y conectar el repo.
+2. Crear servicio PostgreSQL en Railway.
+3. Configurar variables en Railway:
+   - `DATABASE_URL`
+   - `CREDENTIALS_ENCRYPTION_KEY` (base64 de 32 bytes)
+   - `APP_URL` (dominio final)
+4. Build command:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. Start command:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run start
+```
 
-## Deploy on Vercel
+6. Antes del primer arranque, ejecutar migraciones (Railway Shell o job):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run prisma:migrate
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 10) Roadmap por Fases
+
+- **Fase 1 (MVP actual):** Auth, multi-tenant, actividades, tickets, documentos, panel admin base.
+- **Fase 2:** reset de contraseña, carga real de archivos a S3/R2, filtros avanzados y reportes.
+- **Fase 3:** notificaciones por email, SLA por ticket, auditoría y rotación de tokens públicos.
+- **Fase 4:** métricas ejecutivas, automatizaciones, portal blanco por marca.
+
+## 11) Seguridad recomendada
+
+- Passwords siempre con hash `bcrypt`.
+- Sesiones con token aleatorio + hash en DB + cookie HttpOnly.
+- Aislamiento tenant en consultas y server actions.
+- URL pública con token no adivinable y hash en DB.
+- Rate limit + honeypot + validación Zod en servidor.
+- Credenciales externas en `SecureNote` cifradas (AES-GCM), no texto plano.
+- En producción: activar HTTPS, backups y rotación periódica de tokens públicos.
+
