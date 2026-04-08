@@ -8,10 +8,7 @@ export async function getTenantContext(selectedClientId?: string) {
 
   if (isAdmin) {
     const chosenId = selectedClientId;
-    const client =
-      (chosenId
-        ? await prisma.client.findUnique({ where: { id: chosenId } })
-        : await prisma.client.findFirst({ orderBy: { createdAt: "asc" } })) ?? null;
+    const client = chosenId ? await prisma.client.findUnique({ where: { id: chosenId } }) : null;
 
     return {
       user,

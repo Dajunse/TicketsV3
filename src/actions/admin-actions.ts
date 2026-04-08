@@ -168,6 +168,26 @@ export async function createDocumentAction(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+const deleteDocumentSchema = z.object({
+  documentId: z.string().min(1),
+});
+
+export async function deleteDocumentAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = deleteDocumentSchema.safeParse({
+    documentId: formData.get("documentId"),
+  });
+  if (!parsed.success) {
+    throw new Error("Invalid document delete payload");
+  }
+
+  await prisma.document.delete({
+    where: { id: parsed.data.documentId },
+  });
+  revalidatePath("/documents");
+  revalidatePath("/dashboard");
+}
+
 const secureNoteSchema = z.object({
   clientId: z.string().min(1),
   type: z.nativeEnum(CredentialType),

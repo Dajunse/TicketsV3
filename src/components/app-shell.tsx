@@ -24,6 +24,9 @@ export function AppShell({
           <Link className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-900" href="/dashboard">
             Inicio
           </Link>
+          <Link className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-900" href="/calendar">
+            Calendario
+          </Link>
           <Link className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-900" href="/activities">
             Actividades
           </Link>
@@ -48,7 +51,7 @@ export function AppShell({
           </button>
         </form>
       </aside>
-      <main className="portal-light min-w-0 flex-1 space-y-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-5 md:p-7">
+      <main className="portal-light min-w-0 flex-1 space-y-6 rounded-2xl border border-transparent bg-zinc-100 p-5 md:p-7">
         {children}
       </main>
     </div>

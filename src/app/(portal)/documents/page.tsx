@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { createDocumentAction } from "@/actions/admin-actions";
+import { createDocumentAction, deleteDocumentAction } from "@/actions/admin-actions";
 import { PageTitle } from "@/components/page-title";
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
@@ -77,13 +77,26 @@ export default async function DocumentsPage() {
                   {doc.client.name} - {formatDate(doc.createdAt)} - {doc.filename}
                 </p>
               </div>
-              <Link
-                href={doc.storagePath}
-                target="_blank"
-                className="rounded-md border border-zinc-300 bg-black px-3 py-1.5 text-sm text-white"
-              >
-                Descargar
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={doc.storagePath}
+                  target="_blank"
+                  className="rounded-md border border-zinc-300 bg-black px-3 py-1.5 text-sm text-white"
+                >
+                  Descargar
+                </Link>
+                {context.isAdmin ? (
+                  <form action={deleteDocumentAction}>
+                    <input type="hidden" name="documentId" value={doc.id} />
+                    <button
+                      type="submit"
+                      className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm text-rose-700 hover:bg-rose-100"
+                    >
+                      Eliminar
+                    </button>
+                  </form>
+                ) : null}
+              </div>
             </div>
           ))}
           {documents.length === 0 ? <p className="text-sm text-zinc-500">No hay documentos cargados.</p> : null}

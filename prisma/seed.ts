@@ -172,6 +172,58 @@ async function main() {
     skipDuplicates: true,
   });
 
+  const editorialActivity = await prisma.activity.findFirst({
+    where: { clientId: blair.id, title: "PlaneaciÃ³n de calendario editorial" },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (editorialActivity) {
+    await prisma.activityMaterial.deleteMany({
+      where: { activityId: editorialActivity.id },
+    });
+
+    await prisma.activityMaterial.createMany({
+      data: [
+        {
+          activityId: editorialActivity.id,
+          name: "Manzana",
+          materialUrl: null,
+        },
+        {
+          activityId: editorialActivity.id,
+          name: "Pera",
+          materialUrl: "https://example.com/revision/blair/video-pera",
+        },
+      ],
+    });
+  }
+
+  await prisma.publicationProposal.createMany({
+    data: [
+      {
+        clientId: blair.id,
+        createdById: admin.id,
+        title: "Lista de frutas para publicar",
+        description: "Carrusel con frutas de temporada para redes sociales.",
+        reviewUrl: "https://example.com/revision/blair/frutas-abril",
+        scheduledFor: new Date("2026-04-12"),
+        isApproved: false,
+      },
+      {
+        clientId: blair.id,
+        createdById: admin.id,
+        title: "Lista de vacantes para publicar",
+        description: "Publicacion semanal de vacantes activas.",
+        reviewUrl: "https://example.com/revision/blair/vacantes-semana-2",
+        scheduledFor: new Date("2026-04-15"),
+        isApproved: true,
+        approvedAt: new Date("2026-04-08T10:00:00.000Z"),
+        approvedById: blairUser.id,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
   await prisma.document.createMany({
     data: [
       {

@@ -173,6 +173,9 @@ Credenciales demo del seed:
    - `DATABASE_URL`
    - `CREDENTIALS_ENCRYPTION_KEY` (base64 de 32 bytes)
    - `APP_URL` (dominio final)
+   - `BOOTSTRAP_ADMIN_EMAIL` (recomendado)
+   - `BOOTSTRAP_ADMIN_PASSWORD` (recomendado, contrasena fuerte)
+   - `BOOTSTRAP_ADMIN_NAME` (opcional)
 4. Build command:
 
 ```bash
@@ -182,13 +185,13 @@ npm run build
 5. Start command:
 
 ```bash
-npm run start
+npm run railway:start
 ```
 
-6. Antes del primer arranque, ejecutar migraciones de produccion (Railway Shell o deploy command):
+6. Si quieres cargar datos demo (clientes + tickets de ejemplo), ejecuta manualmente:
 
 ```bash
-npm run prisma:migrate:deploy
+npm run prisma:seed
 ```
 
 ## 10) Roadmap por Fases
