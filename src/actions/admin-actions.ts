@@ -6,7 +6,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { encryptSecret } from "@/lib/crypto";
-import { generatePublicTicketToken, hashPublicToken } from "@/lib/public-ticket";
+import {
+  generatePublicTicketToken,
+  hashPublicToken,
+} from "@/lib/public-ticket";
 import { prisma } from "@/lib/prisma";
 
 const createClientSchema = z.object({
@@ -46,6 +49,19 @@ export async function createClientAction(formData: FormData) {
   });
 
   revalidatePath("/admin");
+}
+
+export async function updateClientAction(formData: FormData) {
+  const id = formData.get("id") as string;
+  const name = formData.get("name") as string;
+  const slug = formData.get("slug") as string;
+
+  await prisma.client.update({
+    where: { id },
+    data: { name, slug },
+  });
+
+  revalidatePath("/admin"); // Refresca la página para ver los cambios
 }
 
 const createUserSchema = z.object({

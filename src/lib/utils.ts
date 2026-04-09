@@ -5,11 +5,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("es-MX", {
+  return new Intl.DateTimeFormat("es-ES", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
-  }).format(date);
+    timeZone: "UTC", // O la zona que prefieras, pero que sea fija
+  }).format(new Date(date));
 }
 
 export function formatDateTime(date: Date) {
