@@ -14,12 +14,17 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@tianmake.studio" },
-    update: { passwordHash: adminPasswordHash, role: Role.ADMIN, isActive: true },
+    update: {
+      passwordHash: adminPasswordHash,
+      role: Role.ADMIN,
+      isActive: true,
+    },
     create: {
       email: "admin@tianmake.studio",
       name: "Administrador",
-      role: Role.ADMIN,
       passwordHash: adminPasswordHash,
+      role: Role.ADMIN,
+      isActive: true,
     },
   });
 
@@ -60,7 +65,13 @@ async function main() {
     },
   });
 
-  const services = ["hosting", "correo electrónico", "marketing", "redes sociales", "soporte técnico"];
+  const services = [
+    "hosting",
+    "correo electrónico",
+    "marketing",
+    "redes sociales",
+    "soporte técnico",
+  ];
   for (const serviceName of services) {
     await prisma.serviceCatalog.upsert({
       where: { name: serviceName },
@@ -69,15 +80,23 @@ async function main() {
     });
   }
 
-  const marketing = await prisma.serviceCatalog.findUniqueOrThrow({ where: { name: "marketing" } });
-  const social = await prisma.serviceCatalog.findUniqueOrThrow({ where: { name: "redes sociales" } });
-  const hosting = await prisma.serviceCatalog.findUniqueOrThrow({ where: { name: "hosting" } });
+  const marketing = await prisma.serviceCatalog.findUniqueOrThrow({
+    where: { name: "marketing" },
+  });
+  const social = await prisma.serviceCatalog.findUniqueOrThrow({
+    where: { name: "redes sociales" },
+  });
+  const hosting = await prisma.serviceCatalog.findUniqueOrThrow({
+    where: { name: "hosting" },
+  });
   const emailService = await prisma.serviceCatalog.findUniqueOrThrow({
     where: { name: "correo electrónico" },
   });
 
   await prisma.clientService.upsert({
-    where: { clientId_serviceId: { clientId: blair.id, serviceId: marketing.id } },
+    where: {
+      clientId_serviceId: { clientId: blair.id, serviceId: marketing.id },
+    },
     update: { notes: "Campañas y seguimiento mensual." },
     create: {
       clientId: blair.id,
@@ -97,7 +116,9 @@ async function main() {
   });
 
   await prisma.clientService.upsert({
-    where: { clientId_serviceId: { clientId: newell.id, serviceId: hosting.id } },
+    where: {
+      clientId_serviceId: { clientId: newell.id, serviceId: hosting.id },
+    },
     update: { notes: "Monitoreo y mantenimiento de infraestructura." },
     create: {
       clientId: newell.id,
@@ -107,7 +128,9 @@ async function main() {
   });
 
   await prisma.clientService.upsert({
-    where: { clientId_serviceId: { clientId: newell.id, serviceId: emailService.id } },
+    where: {
+      clientId_serviceId: { clientId: newell.id, serviceId: emailService.id },
+    },
     update: { notes: "Administración de cuentas corporativas." },
     create: {
       clientId: newell.id,
@@ -231,7 +254,8 @@ async function main() {
         title: "Reporte mensual de marketing",
         filename: "reporte-marketing-marzo.pdf",
         mimeType: "application/pdf",
-        storagePath: "https://example.com/docs/blair/reporte-marketing-marzo.pdf",
+        storagePath:
+          "https://example.com/docs/blair/reporte-marketing-marzo.pdf",
       },
       {
         clientId: newell.id,
@@ -249,7 +273,8 @@ async function main() {
       clientId: blair.id,
       createdById: blairUser.id,
       subject: "Ajustar pauta de campaña",
-      description: "Necesitamos mover presupuesto a una campaña de remarketing.",
+      description:
+        "Necesitamos mover presupuesto a una campaña de remarketing.",
       category: "marketing",
       priority: "MEDIUM",
       status: "OPEN",
