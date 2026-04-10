@@ -1,11 +1,13 @@
 "use server";
 
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { CredentialType, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { encryptSecret } from "@/lib/crypto";
+import { sendPasswordResetNotifications } from "@/lib/email-notifications";
 import {
   generatePublicTicketToken,
   hashPublicToken,
@@ -84,6 +86,45 @@ const createUserSchema = z.object({
   password: z.string().min(10),
 });
 
+const resetClientPasswordSchema = z.object({
+  clientId: z.string().min(1),
+  userId: z.string().min(1),
+  newPassword: z.string().min(10).max(128).optional(),
+});
+
+function pickChar(source: string) {
+  return source[crypto.randomInt(0, source.length)];
+}
+
+function generateStrongPassword(length = 16) {
+  const safeLength = Math.max(12, length);
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const digits = "23456789";
+  const symbols = "!@#$%*-_";
+  const all = `${lower}${upper}${digits}${symbols}`;
+
+  const chars = [
+    pickChar(lower),
+    pickChar(upper),
+    pickChar(digits),
+    pickChar(symbols),
+  ];
+
+  for (let i = chars.length; i < safeLength; i += 1) {
+    chars.push(pickChar(all));
+  }
+
+  for (let i = chars.length - 1; i > 0; i -= 1) {
+    const j = crypto.randomInt(0, i + 1);
+    const temp = chars[i];
+    chars[i] = chars[j];
+    chars[j] = temp;
+  }
+
+  return chars.join("");
+}
+
 export async function createClientUserAction(formData: FormData) {
   await requireAdmin();
   const parsed = createUserSchema.safeParse({
@@ -111,6 +152,74 @@ export async function createClientUserAction(formData: FormData) {
       },
     },
   });
+
+  revalidatePath("/admin");
+}
+
+export async function resetClientUserPasswordAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const parsed = resetClientPasswordSchema.safeParse({
+    clientId: formData.get("clientId"),
+    userId: formData.get("userId"),
+    newPassword: formData.get("newPassword") || undefined,
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid password reset payload");
+  }
+
+  const membership = await prisma.clientUser.findFirst({
+    where: {
+      clientId: parsed.data.clientId,
+      userId: parsed.data.userId,
+      user: {
+        role: Role.CLIENT,
+        isActive: true,
+      },
+    },
+    select: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      },
+      client: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!membership) {
+    throw new Error("Client user not found for this account");
+  }
+
+  const temporaryPassword = parsed.data.newPassword?.trim() || generateStrongPassword();
+  const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+
+  await prisma.user.update({
+    where: { id: membership.user.id },
+    data: { passwordHash },
+  });
+
+  await prisma.session.deleteMany({
+    where: { userId: membership.user.id },
+  });
+
+  try {
+    await sendPasswordResetNotifications({
+      adminEmail: admin.email,
+      clientName: membership.client.name,
+      userName: membership.user.name,
+      userEmail: membership.user.email,
+      temporaryPassword,
+    });
+  } catch (error) {
+    console.error("[password-reset] notification error", error);
+  }
 
   revalidatePath("/admin");
 }

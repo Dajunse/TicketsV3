@@ -13,6 +13,7 @@ import { decryptSecret } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { EditClientModal } from "@/components/EditClientModal";
+import { ResetClientPasswordForm } from "@/components/reset-client-password-form";
 
 export default async function AdminPage() {
   await requireAdmin();
@@ -286,6 +287,26 @@ export default async function AdminPage() {
                   Creado: {formatDate(client.createdAt)}
                 </p>
                 <EditClientModal client={{ id: client.id, name: client.name, slug: client.slug }} />
+                <div className="mt-3 rounded-md border border-zinc-200 bg-zinc-50 p-2">
+                  <p className="text-[11px] uppercase tracking-[0.12em] text-zinc-500">
+                    Usuarios cliente
+                  </p>
+                  {client.users.length > 0 ? (
+                    <div className="mt-2 space-y-2">
+                      {client.users.map((membership) => (
+                        <div key={membership.id} className="rounded-md border border-zinc-200 bg-white p-2">
+                          <p className="text-xs font-medium text-zinc-800">
+                            {membership.user.name || membership.user.email}
+                          </p>
+                          <p className="text-[11px] text-zinc-500">{membership.user.email}</p>
+                          <ResetClientPasswordForm clientId={client.id} userId={membership.user.id} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-zinc-500">Sin usuarios asignados a este cliente.</p>
+                  )}
+                </div>
               </div>
             );
           })}
