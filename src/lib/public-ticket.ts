@@ -10,7 +10,10 @@ export function generatePublicTicketToken() {
   return crypto.randomBytes(24).toString("base64url");
 }
 
+// src/lib/public-ticket.ts
+
 export async function resolvePublicClient(slug: string, token: string) {
+  // Buscamos por publicTicketSlug, que es el campo dedicado a la URL pública
   const client = await prisma.client.findUnique({
     where: { publicTicketSlug: slug },
   });
@@ -19,8 +22,9 @@ export async function resolvePublicClient(slug: string, token: string) {
     return null;
   }
 
-  const expectedHash = sha256(token);
-  if (expectedHash !== client.publicTicketTokenHash) {
+  // Ajuste: Como en el formulario estamos pasando el Hash que ya está en la DB,
+  // comparamos directamente sin volver a aplicar sha256.
+  if (token !== client.publicTicketTokenHash) {
     return null;
   }
 

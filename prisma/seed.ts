@@ -282,12 +282,12 @@ async function main() {
     },
   });
 
-  console.log("Seed completado");
-  console.log("Admin:", admin.email, "password: Admin12345!");
-  console.log("Cliente Blair:", blairUser.email, "password: Cliente12345!");
-  console.log("Cliente Newell:", newellUser.email, "password: Cliente12345!");
-  console.log("Public Blair URL: /support/blair/" + blairToken);
-  console.log("Public Newell URL: /support/newell/" + newellToken);
+  // console.log("Seed completado");
+  // console.log("Admin:", admin.email, "password: Admin12345!");
+  // console.log("Cliente Blair:", blairUser.email, "password: Cliente12345!");
+  // console.log("Cliente Newell:", newellUser.email, "password: Cliente12345!");
+  // console.log("Public Blair URL: /support/blair/" + blairToken);
+  // console.log("Public Newell URL: /support/newell/" + newellToken);
 }
 
 main()
