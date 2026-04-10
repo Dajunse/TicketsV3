@@ -6,6 +6,7 @@ import {
   createClientUserAction,
   createSecureNoteAction,
   createServiceCatalogAction,
+  rotateClientPublicTicketTokenAction,
 } from "@/actions/admin-actions";
 import { PageTitle } from "@/components/page-title";
 import { requireAdmin } from "@/lib/auth";
@@ -265,6 +266,15 @@ export default async function AdminPage() {
                 <p className="mt-1 text-xs text-zinc-600">
                   URL publica tickets: {publicTicketPath}
                 </p>
+                <form action={rotateClientPublicTicketTokenAction} className="mt-2">
+                  <input type="hidden" name="clientId" value={client.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                  >
+                    {canOpenPublicLink ? "Regenerar token publico" : "Generar token publico"}
+                  </button>
+                </form>
                 {canOpenPublicLink ? (
                   <Link
                     href={publicTicketPath}

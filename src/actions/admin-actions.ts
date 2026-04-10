@@ -86,6 +86,10 @@ const createUserSchema = z.object({
   password: z.string().min(10),
 });
 
+const rotatePublicTicketTokenSchema = z.object({
+  clientId: z.string().min(1),
+});
+
 const resetClientPasswordSchema = z.object({
   clientId: z.string().min(1),
   userId: z.string().min(1),
@@ -152,6 +156,66 @@ export async function createClientUserAction(formData: FormData) {
       },
     },
   });
+
+  revalidatePath("/admin");
+}
+
+export async function rotateClientPublicTicketTokenAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const parsed = rotatePublicTicketTokenSchema.safeParse({
+    clientId: formData.get("clientId"),
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid public token payload");
+  }
+
+  const client = await prisma.client.findUnique({
+    where: { id: parsed.data.clientId },
+    select: { id: true },
+  });
+
+  if (!client) {
+    throw new Error("Client not found");
+  }
+
+  const token = generatePublicTicketToken();
+  const tokenHash = hashPublicToken(token);
+  const encrypted = encryptSecret(token);
+
+  const existingTokenNote = await prisma.secureNote.findFirst({
+    where: {
+      clientId: parsed.data.clientId,
+      title: "Public ticket URL token",
+    },
+    select: { id: true },
+  });
+
+  await prisma.client.update({
+    where: { id: parsed.data.clientId },
+    data: { publicTicketTokenHash: tokenHash },
+  });
+
+  if (existingTokenNote) {
+    await prisma.secureNote.update({
+      where: { id: existingTokenNote.id },
+      data: {
+        type: CredentialType.INTERNAL_NOTE,
+        createdById: admin.id,
+        ...encrypted,
+      },
+    });
+  } else {
+    await prisma.secureNote.create({
+      data: {
+        clientId: parsed.data.clientId,
+        title: "Public ticket URL token",
+        type: CredentialType.INTERNAL_NOTE,
+        createdById: admin.id,
+        ...encrypted,
+      },
+    });
+  }
 
   revalidatePath("/admin");
 }
