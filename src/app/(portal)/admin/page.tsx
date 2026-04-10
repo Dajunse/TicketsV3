@@ -258,8 +258,7 @@ export default async function AdminPage() {
                 <p className="font-medium text-zinc-900">{client.name}</p>
                 <p className="text-xs text-zinc-500">Slug: {client.slug}</p>
                 <p className="mt-1 text-xs text-zinc-600">
-                  URL publica tickets: /support/{client.publicTicketSlug}/
-                  {publicToken || "[token]"}
+                  URL publica tickets: /public/ticket/{client.publicTicketSlug}/
                 </p>
                 <p className="mt-2 text-xs text-zinc-500">
                   Usuarios: {client.users.length} - Servicios:{" "}
