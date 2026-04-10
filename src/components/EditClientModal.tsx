@@ -1,27 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { updateClientAction } from "@/actions/admin-actions"; // Necesitarás crear esta acción
+import { updateClientAction } from "@/actions/admin-actions";
 
-export function EditClientModal({ client }: { client: any }) {
+type EditClient = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export function EditClientModal({ client }: { client: EditClient }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="mt-2 text-xs font-semibold text-blue-600 cursor-pointer"
+        className="mt-2 cursor-pointer text-xs font-semibold text-blue-600"
       >
         Editar datos del cliente
       </button>
 
-      {isOpen && (
+      {isOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <div className="flex justify-center items-center">
-              <h3 className="text-black text-lg font-bold mb-4">
-                Editar Cliente: {client.name}
-              </h3>
+            <div className="flex items-center justify-center">
+              <h3 className="mb-4 text-lg font-bold text-black">Editar Cliente: {client.name}</h3>
             </div>
 
             <form
@@ -56,12 +60,12 @@ export function EditClientModal({ client }: { client: any }) {
                   type="submit"
                   className="flex-1 rounded-lg bg-black py-2 text-sm font-medium text-white"
                 >
-                  Guardar Cambios
+                  Guardar cambios
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="flex-1 rounded-lg bg-black py-2 text-sm font-medium text-white"
+                  className="flex-1 rounded-lg bg-zinc-200 py-2 text-sm font-medium text-zinc-900"
                 >
                   Cancelar
                 </button>
@@ -69,7 +73,7 @@ export function EditClientModal({ client }: { client: any }) {
             </form>
           </div>
         </div>
-      )}
+      ) : null}
     </>
   );
 }

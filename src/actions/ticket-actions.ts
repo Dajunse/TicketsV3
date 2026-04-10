@@ -92,7 +92,7 @@ export async function createPublicTicketAction(
 
   const client = await resolvePublicClient(parsed.data.slug, parsed.data.token);
   if (!client) {
-    return { ok: false, error: "El enlace no es válido o expiró." };
+    return { ok: false, error: "El enlace no es valido o expiro." };
   }
 
   const rateLimit = await assertPublicRateLimit(client.id);
@@ -182,3 +182,4 @@ export async function updateTicketStatusAction(formData: FormData) {
   revalidatePath("/tickets");
   revalidatePath("/dashboard");
 }
+

@@ -258,7 +258,7 @@ export default async function AdminPage() {
                 <p className="font-medium text-zinc-900">{client.name}</p>
                 <p className="text-xs text-zinc-500">Slug: {client.slug}</p>
                 <p className="mt-1 text-xs text-zinc-600">
-                  URL publica tickets: /public/ticket/{client.publicTicketSlug}/
+                  URL publica tickets: /public/ticket/{client.publicTicketSlug}?token={publicToken || "[token]"}
                 </p>
                 <p className="mt-2 text-xs text-zinc-500">
                   Usuarios: {client.users.length} - Servicios:{" "}
@@ -267,7 +267,7 @@ export default async function AdminPage() {
                 <p className="mt-1 text-xs text-zinc-500">
                   Creado: {formatDate(client.createdAt)}
                 </p>
-                <EditClientModal client={client} />
+                <EditClientModal client={{ id: client.id, name: client.name, slug: client.slug }} />
               </div>
             );
           })}

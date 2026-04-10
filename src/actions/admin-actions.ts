@@ -52,16 +52,29 @@ export async function createClientAction(formData: FormData) {
 }
 
 export async function updateClientAction(formData: FormData) {
-  const id = formData.get("id") as string;
-  const name = formData.get("name") as string;
-  const slug = formData.get("slug") as string;
+  await requireAdmin();
+  const parsed = createClientSchema
+    .extend({ id: z.string().min(1) })
+    .safeParse({
+      id: formData.get("id"),
+      name: formData.get("name"),
+      slug: formData.get("slug"),
+    });
+
+  if (!parsed.success) {
+    throw new Error("Invalid client update payload");
+  }
 
   await prisma.client.update({
-    where: { id },
-    data: { name, slug },
+    where: { id: parsed.data.id },
+    data: {
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      publicTicketSlug: parsed.data.slug,
+    },
   });
 
-  revalidatePath("/admin"); // Refresca la página para ver los cambios
+  revalidatePath("/admin");
 }
 
 const createUserSchema = z.object({
@@ -234,3 +247,5 @@ export async function createSecureNoteAction(formData: FormData) {
   });
   revalidatePath("/admin");
 }
+
+
