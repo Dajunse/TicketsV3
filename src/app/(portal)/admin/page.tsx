@@ -1,4 +1,5 @@
-﻿import { CredentialType } from "@prisma/client";
+import { CredentialType } from "@prisma/client";
+import Link from "next/link";
 import {
   assignServiceToClientAction,
   createClientAction,
@@ -250,6 +251,9 @@ export default async function AdminPage() {
               }
             }
 
+            const publicTicketPath = `/public/ticket/${client.publicTicketSlug}?token=${publicToken || "[token]"}`;
+            const canOpenPublicLink = Boolean(publicToken) && !publicToken.startsWith("[");
+
             return (
               <div
                 key={client.id}
@@ -258,8 +262,22 @@ export default async function AdminPage() {
                 <p className="font-medium text-zinc-900">{client.name}</p>
                 <p className="text-xs text-zinc-500">Slug: {client.slug}</p>
                 <p className="mt-1 text-xs text-zinc-600">
-                  URL publica tickets: /public/ticket/{client.publicTicketSlug}?token={publicToken || "[token]"}
+                  URL publica tickets: {publicTicketPath}
                 </p>
+                {canOpenPublicLink ? (
+                  <Link
+                    href={publicTicketPath}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                  >
+                    Abrir portal publico
+                  </Link>
+                ) : (
+                  <p className="mt-2 text-xs text-amber-700">
+                    No se puede abrir el portal publico sin token valido.
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-zinc-500">
                   Usuarios: {client.users.length} - Servicios:{" "}
                   {client.services.length}
@@ -276,3 +294,5 @@ export default async function AdminPage() {
     </section>
   );
 }
+
+
