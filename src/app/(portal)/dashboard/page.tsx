@@ -28,11 +28,13 @@ export default async function DashboardPage() {
     prisma.ticket.count({
       where: where ? { ...where, status: TicketStatus.CLOSED } : { status: TicketStatus.CLOSED },
     }),
-    prisma.document.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
+    context.isAdmin
+      ? prisma.document.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -104,21 +106,23 @@ export default async function DashboardPage() {
         </article>
       </div>
 
-      <article className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4">
-        <h2 className="font-title text-lg text-zinc-900">Documentos disponibles</h2>
-        <ul className="space-y-2">
-          {docs.map((doc) => (
-            <li key={doc.id} className="flex items-center justify-between rounded-lg border border-zinc-200 p-3">
-              <div>
-                <p className="font-medium text-zinc-800">{doc.title}</p>
-                <p className="text-xs text-zinc-500">{formatDate(doc.createdAt)}</p>
-              </div>
-              <span className="text-sm text-zinc-700">{doc.filename}</span>
-            </li>
-          ))}
-          {docs.length === 0 ? <li className="text-sm text-zinc-500">No hay documentos cargados.</li> : null}
-        </ul>
-      </article>
+      {context.isAdmin ? (
+        <article className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4">
+          <h2 className="font-title text-lg text-zinc-900">Documentos disponibles</h2>
+          <ul className="space-y-2">
+            {docs.map((doc) => (
+              <li key={doc.id} className="flex items-center justify-between rounded-lg border border-zinc-200 p-3">
+                <div>
+                  <p className="font-medium text-zinc-800">{doc.title}</p>
+                  <p className="text-xs text-zinc-500">{formatDate(doc.createdAt)}</p>
+                </div>
+                <span className="text-sm text-zinc-700">{doc.filename}</span>
+              </li>
+            ))}
+            {docs.length === 0 ? <li className="text-sm text-zinc-500">No hay documentos cargados.</li> : null}
+          </ul>
+        </article>
+      ) : null}
     </section>
   );
 }

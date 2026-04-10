@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createDocumentAction, deleteDocumentAction } from "@/actions/admin-actions";
 import { PageTitle } from "@/components/page-title";
 import { prisma } from "@/lib/prisma";
@@ -7,6 +8,10 @@ import { formatDate } from "@/lib/utils";
 
 export default async function DocumentsPage() {
   const context = await getTenantContext();
+  if (!context.isAdmin) {
+    redirect("/dashboard");
+  }
+
   const where = context.clientId ? { clientId: context.clientId } : undefined;
 
   const [documents, clients] = await Promise.all([

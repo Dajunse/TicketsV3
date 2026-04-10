@@ -33,9 +33,11 @@ export function AppShell({
           <Link className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-900" href="/tickets">
             Tickets
           </Link>
-          <Link className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-900" href="/documents">
-            Documentos
-          </Link>
+          {role === "ADMIN" ? (
+            <Link className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-900" href="/documents">
+              Documentos
+            </Link>
+          ) : null}
           {role === "ADMIN" ? (
             <Link className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-900" href="/admin">
               Administracion
