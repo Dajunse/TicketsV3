@@ -6,6 +6,16 @@ type PasswordResetNotificationPayload = {
   temporaryPassword: string;
 };
 
+type ActivityMaterialCommentNotificationPayload = {
+  adminEmail: string;
+  clientName: string;
+  activityTitle: string;
+  materialName: string;
+  commenterName: string;
+  commenterEmail: string;
+  commentBody: string;
+};
+
 type EmailResult = {
   sent: boolean;
   message: string;
@@ -94,4 +104,35 @@ export async function sendPasswordResetNotifications(payload: PasswordResetNotif
     userResult,
     adminResult,
   };
+}
+
+export async function sendAdminActivityMaterialCommentNotification(
+  payload: ActivityMaterialCommentNotificationPayload,
+) {
+  const adminAlertEmail = process.env.ADMIN_ALERT_EMAIL?.trim() || payload.adminEmail;
+  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "Portal SaaS";
+  const subject = `Nuevo comentario del cliente - ${payload.clientName}`;
+  const text = [
+    `Cliente: ${payload.clientName}`,
+    `Actividad: ${payload.activityTitle}`,
+    `Material: ${payload.materialName}`,
+    `Autor: ${payload.commenterName} (${payload.commenterEmail})`,
+    "",
+    "Comentario:",
+    payload.commentBody,
+    "",
+    `Portal: ${appBaseUrl}/activities`,
+  ].join("\n");
+  const html = `
+    <p><strong>Nuevo comentario del cliente</strong></p>
+    <p>Cliente: <strong>${payload.clientName}</strong></p>
+    <p>Actividad: <strong>${payload.activityTitle}</strong></p>
+    <p>Material: <strong>${payload.materialName}</strong></p>
+    <p>Autor: <strong>${payload.commenterName}</strong> (${payload.commenterEmail})</p>
+    <p>Comentario:</p>
+    <blockquote>${payload.commentBody}</blockquote>
+    <p>Portal: ${appBaseUrl}/activities</p>
+  `;
+
+  return sendViaResend(adminAlertEmail, subject, html, text);
 }

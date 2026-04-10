@@ -8,6 +8,7 @@ import {
   updateActivityDetailsAction,
   updateActivityStatusAction,
 } from "@/actions/activity-actions";
+import { ActivityMaterialCommentsModal } from "@/components/activity-material-comments-modal";
 import { ActivityMaterialCheckbox } from "@/components/activity-material-checkbox";
 import { PageTitle } from "@/components/page-title";
 import { StatusBadge } from "@/components/status-badge";
@@ -76,7 +77,7 @@ export default async function ActivitiesPage({
 
   const whereBase = context.clientId ? { clientId: context.clientId } : {};
 
-  const [activities, clients, clientServices] = await Promise.all([
+  const [activities, clients, clientServices, unreadCommentMaterials] = await Promise.all([
     prisma.activity.findMany({
       where: {
         ...whereBase,
@@ -91,6 +92,18 @@ export default async function ActivitiesPage({
             approvedBy: {
               select: { name: true, email: true },
             },
+            comments: {
+              include: {
+                author: {
+                  select: {
+                    name: true,
+                    email: true,
+                    role: true,
+                  },
+                },
+              },
+              orderBy: { createdAt: "asc" },
+            },
           },
           orderBy: { createdAt: "asc" },
         },
@@ -103,6 +116,28 @@ export default async function ActivitiesPage({
           include: { service: true, client: true },
           where: context.clientId ? { clientId: context.clientId } : undefined,
           orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
+    context.isAdmin
+      ? prisma.activityMaterial.findMany({
+          where: context.clientId
+            ? { hasUnreadClientComment: true, activity: { clientId: context.clientId } }
+            : { hasUnreadClientComment: true },
+          select: {
+            id: true,
+            name: true,
+            activity: {
+              select: {
+                dueDate: true,
+                title: true,
+                client: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 20,
         })
       : Promise.resolve([]),
   ]);
@@ -158,6 +193,26 @@ export default async function ActivitiesPage({
           </Link>
         </div>
       </article>
+
+      {context.isAdmin && unreadCommentMaterials.length > 0 ? (
+        <article className="rounded-xl border-4 border-amber-300 bg-amber-50 p-4">
+          <h2 className="font-title text-base text-amber-900">Notificaciones de comentarios</h2>
+          <p className="mt-1 text-sm text-amber-800">
+            Hay {unreadCommentMaterials.length} publicaciones con comentarios nuevos de cliente.
+          </p>
+          <div className="mt-3 space-y-2">
+            {unreadCommentMaterials.map((material) => (
+              <Link
+                key={material.id}
+                href={`/activities?day=${dayKey(new Date(material.activity.dueDate))}`}
+                className="block rounded-md border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-800 hover:bg-amber-100"
+              >
+                {material.activity.client.name} - {material.activity.title} - {material.name}
+              </Link>
+            ))}
+          </div>
+        </article>
+      ) : null}
 
       {context.isAdmin ? (
         <article className="rounded-xl border-4 border-emerald-400 bg-gradient-to-b from-zinc-50 to-white p-4">
@@ -363,6 +418,7 @@ export default async function ActivitiesPage({
                           <th className="px-3 py-2 text-left font-medium">Validacion</th>
                           <th className="px-3 py-2 text-left font-medium">Aprobacion</th>
                           {context.isAdmin ? <th className="px-3 py-2 text-left font-medium">Acciones</th> : null}
+                          <th className="px-3 py-2 text-left font-medium">Comentarios</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -438,6 +494,21 @@ export default async function ActivitiesPage({
                                 </form>
                               </td>
                             ) : null}
+                            <td className="px-3 py-2.5">
+                              <ActivityMaterialCommentsModal
+                                materialId={material.id}
+                                materialName={material.name}
+                                isAdmin={context.isAdmin}
+                                hasUnreadClientComment={material.hasUnreadClientComment}
+                                comments={material.comments.map((comment) => ({
+                                  id: comment.id,
+                                  body: comment.body,
+                                  createdAt: comment.createdAt,
+                                  authorName: comment.author.name || comment.author.email,
+                                  authorRole: comment.author.role,
+                                }))}
+                              />
+                            </td>
                           </tr>
                         ))}
                       </tbody>

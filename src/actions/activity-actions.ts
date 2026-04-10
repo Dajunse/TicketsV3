@@ -7,6 +7,7 @@ import { ActivityStatus, Priority, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { sendAdminActivityMaterialCommentNotification } from "@/lib/email-notifications";
 import { prisma } from "@/lib/prisma";
 
 const activitySchema = z.object({
@@ -40,6 +41,11 @@ const activityMaterialSchema = z.object({
   activityId: z.string().min(1),
   name: z.string().min(2),
   materialUrl: z.string().url().optional(),
+});
+
+const activityMaterialCommentSchema = z.object({
+  materialId: z.string().min(1),
+  body: z.string().trim().min(2).max(2000),
 });
 
 const ALLOWED_MATERIAL_MIME_TYPES = new Set(["application/pdf", "image/png", "image/jpeg"]);
@@ -408,6 +414,107 @@ export async function updateActivityMaterialApprovalAction(formData: FormData) {
   revalidatePath("/activities");
   revalidatePath("/calendar");
   revalidatePath("/dashboard");
+}
+
+export async function addActivityMaterialCommentAction(formData: FormData) {
+  const user = await requireUser();
+  const parsed = activityMaterialCommentSchema.safeParse({
+    materialId: formData.get("materialId"),
+    body: formData.get("body"),
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid material comment payload");
+  }
+
+  const material = await prisma.activityMaterial.findUnique({
+    where: { id: parsed.data.materialId },
+    select: {
+      id: true,
+      name: true,
+      activity: {
+        select: {
+          id: true,
+          title: true,
+          clientId: true,
+          client: {
+            select: { name: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!material) {
+    throw new Error("Activity material not found");
+  }
+
+  const hasAccess =
+    user.role === Role.ADMIN || user.memberships.some((membership) => membership.clientId === material.activity.clientId);
+  if (!hasAccess) {
+    throw new Error("Unauthorized tenant access");
+  }
+
+  await prisma.activityMaterialComment.create({
+    data: {
+      materialId: material.id,
+      authorId: user.id,
+      body: parsed.data.body,
+    },
+  });
+
+  if (user.role === Role.CLIENT) {
+    await prisma.activityMaterial.update({
+      where: { id: material.id },
+      data: { hasUnreadClientComment: true },
+    });
+
+    const adminUser = await prisma.user.findFirst({
+      where: {
+        role: Role.ADMIN,
+        isActive: true,
+      },
+      select: { email: true },
+    });
+
+    if (adminUser) {
+      try {
+        await sendAdminActivityMaterialCommentNotification({
+          adminEmail: adminUser.email,
+          clientName: material.activity.client.name,
+          activityTitle: material.activity.title,
+          materialName: material.name,
+          commenterName: user.name || user.email,
+          commenterEmail: user.email,
+          commentBody: parsed.data.body,
+        });
+      } catch (error) {
+        console.error("[activity-material-comment] notification error", error);
+      }
+    }
+  }
+
+  revalidatePath("/activities");
+  revalidatePath("/dashboard");
+}
+
+export async function markActivityMaterialCommentsSeenAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== Role.ADMIN) {
+    throw new Error("Only admins can mark material comments as seen");
+  }
+
+  const materialId = String(formData.get("materialId") ?? "");
+  if (!materialId) {
+    throw new Error("Invalid material id");
+  }
+
+  await prisma.activityMaterial.update({
+    where: { id: materialId },
+    data: { hasUnreadClientComment: false },
+  });
+
+  revalidatePath("/activities");
 }
 
 export async function deleteActivityMaterialAction(formData: FormData) {

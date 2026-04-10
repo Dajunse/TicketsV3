@@ -64,6 +64,7 @@ model User {
   createdPublicationProposals  PublicationProposal[] @relation("PublicationCreatedBy")
   approvedPublicationProposals PublicationProposal[] @relation("PublicationApprovedBy")
   approvedActivityMaterials    ActivityMaterial[]    @relation("ActivityMaterialApprovedBy")
+  activityMaterialComments     ActivityMaterialComment[]
 }
 
 model Client {
@@ -179,6 +180,7 @@ model ActivityMaterial {
   fileName     String?
   fileMimeType String?
   fileSizeBytes Int?
+  hasUnreadClientComment Boolean @default(false)
   isApproved   Boolean  @default(false)
   approvedAt   DateTime?
   approvedById String?
@@ -186,8 +188,23 @@ model ActivityMaterial {
   updatedAt    DateTime @updatedAt
   activity     Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
   approvedBy   User?    @relation("ActivityMaterialApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  comments     ActivityMaterialComment[]
 
   @@index([activityId, isApproved])
+  @@index([activityId, hasUnreadClientComment])
+}
+
+model ActivityMaterialComment {
+  id         String           @id @default(cuid())
+  materialId String
+  authorId   String
+  body       String
+  createdAt  DateTime         @default(now())
+  material   ActivityMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  author     User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([materialId, createdAt])
+  @@index([authorId, createdAt])
 }
 
 model Ticket {
