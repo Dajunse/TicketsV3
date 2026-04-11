@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   addTicketMessageAction,
   createAuthenticatedTicketAction,
+  deleteTicketAction,
   updateTicketStatusAction,
 } from "@/actions/ticket-actions";
 import { PageTitle } from "@/components/page-title";
@@ -169,19 +170,30 @@ export default async function TicketsPage() {
                   {priorityLabel(ticket.priority)}
                 </StatusBadge>
                 {context.isAdmin ? (
-                  <form action={updateTicketStatusAction} className="flex items-center gap-2">
-                    <input type="hidden" name="ticketId" value={ticket.id} />
-                    <select name="status" className="rounded-md px-2 py-1 text-xs" defaultValue={ticket.status}>
-                      {Object.values(TicketStatus).map((status) => (
-                        <option key={status} value={status}>
-                          {ticketStatusLabel(status)}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="submit" className="rounded-md border border-zinc-300 px-2 py-1 text-xs">
-                      Guardar
-                    </button>
-                  </form>
+                  <div className="flex items-center gap-2">
+                    <form action={updateTicketStatusAction} className="flex items-center gap-2">
+                      <input type="hidden" name="ticketId" value={ticket.id} />
+                      <select name="status" className="rounded-md px-2 py-1 text-xs" defaultValue={ticket.status}>
+                        {Object.values(TicketStatus).map((status) => (
+                          <option key={status} value={status}>
+                            {ticketStatusLabel(status)}
+                          </option>
+                        ))}
+                      </select>
+                      <button type="submit" className="rounded-md border border-zinc-300 px-2 py-1 text-xs">
+                        Guardar
+                      </button>
+                    </form>
+                    <form action={deleteTicketAction}>
+                      <input type="hidden" name="ticketId" value={ticket.id} />
+                      <button
+                        type="submit"
+                        className="rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
+                      >
+                        Eliminar
+                      </button>
+                    </form>
+                  </div>
                 ) : null}
               </div>
             </div>

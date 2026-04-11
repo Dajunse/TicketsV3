@@ -4,6 +4,7 @@ import { Priority, Role, TicketOrigin, TicketStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit-log";
 import { assertPublicRateLimit, resolvePublicClient } from "@/lib/public-ticket";
 import { prisma } from "@/lib/prisma";
 
@@ -179,6 +180,48 @@ export async function updateTicketStatusAction(formData: FormData) {
     where: { id: ticketId },
     data: { status: status as TicketStatus },
   });
+  revalidatePath("/tickets");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteTicketAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== Role.ADMIN) {
+    throw new Error("Only admins can delete tickets");
+  }
+
+  const ticketId = String(formData.get("ticketId") ?? "");
+  if (!ticketId) {
+    throw new Error("Invalid ticket id");
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: {
+      id: true,
+      clientId: true,
+      subject: true,
+    },
+  });
+
+  if (!ticket) {
+    throw new Error("Ticket not found");
+  }
+
+  await prisma.ticket.delete({
+    where: { id: ticketId },
+  });
+
+  await createAuditLog({
+    actorUserId: user.id,
+    actorRole: user.role,
+    clientId: ticket.clientId,
+    eventType: "TICKET_DELETED",
+    entityType: "TICKET",
+    entityId: ticket.id,
+    message: `Ticket eliminado: ${ticket.subject}`,
+  });
+
   revalidatePath("/tickets");
   revalidatePath("/dashboard");
 }
