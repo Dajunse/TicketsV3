@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ActivityStatus } from "@prisma/client";
+import { ActivityStatus, Prisma } from "@prisma/client";
 import { deleteActivityAction } from "@/actions/activity-actions";
 import { ActivityCreateModal } from "@/components/activity-create-modal";
 import { ActivityQuickEditModal } from "@/components/activity-quick-edit-modal";
@@ -69,7 +69,14 @@ export default async function ActivitiesPage({
   const statusFilter = showCompleted
     ? {}
     : { status: { in: [ActivityStatus.PENDING, ActivityStatus.IN_PROGRESS] as ActivityStatus[] } };
-  const activityWhere = { ...whereBase, ...statusFilter };
+  const activityWhere: Prisma.ActivityWhereInput = { ...whereBase, ...statusFilter };
+
+  if (!context.isAdmin && !showApprovedMaterials) {
+    activityWhere.OR = [
+      { materials: { none: {} } },
+      { materials: { some: { isApproved: false } } },
+    ];
+  }
 
   const totalActivities = await prisma.activity.count({
     where: activityWhere,
