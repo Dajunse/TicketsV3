@@ -49,6 +49,7 @@ export async function GET(
       filePublicUrl: true,
       fileName: true,
       fileMimeType: true,
+      fileBytes: true,
       activity: {
         select: {
           clientId: true,
@@ -81,8 +82,21 @@ export async function GET(
     }
   }
 
+  if (!fileBuffer && material.fileBytes) {
+    fileBuffer = Buffer.from(material.fileBytes);
+  }
+
   if (!fileBuffer) {
     return new Response("Material file unavailable", { status: 404 });
+  }
+
+  if (!material.fileBytes) {
+    await prisma.activityMaterial
+      .update({
+        where: { id: material.id },
+        data: { fileBytes: fileBuffer },
+      })
+      .catch(() => {});
   }
 
   const mimeType = material.fileMimeType || "application/octet-stream";

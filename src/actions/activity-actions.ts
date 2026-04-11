@@ -413,6 +413,7 @@ export async function createActivityMaterialAction(formData: FormData) {
   let fileName: string | null = null;
   let fileMimeType: string | null = null;
   let fileSizeBytes: number | null = null;
+  let fileBytes: Buffer | null = null;
 
   if (file) {
     const extension = inferExtension(file.name, file.type);
@@ -429,6 +430,7 @@ export async function createActivityMaterialAction(formData: FormData) {
     fileName = file.name;
     fileMimeType = file.type;
     fileSizeBytes = file.size;
+    fileBytes = fileBuffer;
   }
 
   await prisma.activityMaterial.create({
@@ -441,6 +443,7 @@ export async function createActivityMaterialAction(formData: FormData) {
       fileName,
       fileMimeType,
       fileSizeBytes,
+      fileBytes,
     },
   });
 
@@ -498,6 +501,7 @@ export async function updateActivityMaterialAction(formData: FormData) {
   let nextFileName: string | null | undefined;
   let nextFileMimeType: string | null | undefined;
   let nextFileSizeBytes: number | null | undefined;
+  let nextFileBytes: Buffer | null | undefined;
 
   if (file) {
     if (material.fileStoragePath) {
@@ -518,6 +522,7 @@ export async function updateActivityMaterialAction(formData: FormData) {
     nextFileName = file.name;
     nextFileMimeType = file.type;
     nextFileSizeBytes = file.size;
+    nextFileBytes = fileBuffer;
   } else if (removeFile) {
     if (material.fileStoragePath) {
       await unlink(material.fileStoragePath).catch(() => {});
@@ -527,6 +532,7 @@ export async function updateActivityMaterialAction(formData: FormData) {
     nextFileName = null;
     nextFileMimeType = null;
     nextFileSizeBytes = null;
+    nextFileBytes = null;
   }
 
   await prisma.activityMaterial.update({
@@ -544,6 +550,7 @@ export async function updateActivityMaterialAction(formData: FormData) {
             fileName: nextFileName ?? null,
             fileMimeType: nextFileMimeType ?? null,
             fileSizeBytes: nextFileSizeBytes ?? null,
+            fileBytes: nextFileBytes ?? null,
           }
         : {}),
     },

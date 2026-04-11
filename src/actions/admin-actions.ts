@@ -453,6 +453,7 @@ export async function createDocumentAction(formData: FormData) {
   let storagePath = parsed.data.storagePath?.trim() || "";
   let mimeType = parsed.data.mimeType?.trim() || "";
   let sizeBytes: number | undefined;
+  let fileBytes: Buffer | undefined;
 
   if (file) {
     const fileExt = path.extname(file.name);
@@ -467,6 +468,7 @@ export async function createDocumentAction(formData: FormData) {
     storagePath = `/uploads/documents/${generatedName}`;
     mimeType = file.type || mimeType || "application/octet-stream";
     sizeBytes = file.size;
+    fileBytes = fileBuffer;
   } else {
     if (!filename || !storagePath) {
       throw new Error("Provide a file upload or storage URL + filename");
@@ -481,6 +483,7 @@ export async function createDocumentAction(formData: FormData) {
       mimeType: mimeType || null,
       storagePath,
       sizeBytes,
+      fileBytes: fileBytes ?? null,
     },
   });
   revalidatePath("/documents");

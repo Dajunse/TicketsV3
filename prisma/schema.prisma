@@ -202,6 +202,7 @@ model ActivityMaterial {
   fileName     String?
   fileMimeType String?
   fileSizeBytes Int?
+  fileBytes    Bytes?
   hasUnreadClientComment Boolean @default(false)
   isApproved   Boolean  @default(false)
   approvedAt   DateTime?
@@ -271,6 +272,7 @@ model Document {
   filename    String
   mimeType    String?
   sizeBytes   Int?
+  fileBytes   Bytes?
   storagePath String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

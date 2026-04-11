@@ -49,6 +49,7 @@ export async function GET(
       filename: true,
       mimeType: true,
       storagePath: true,
+      fileBytes: true,
       clientId: true,
     },
   });
@@ -81,8 +82,21 @@ export async function GET(
     }
   }
 
+  if (!fileBuffer && document.fileBytes) {
+    fileBuffer = Buffer.from(document.fileBytes);
+  }
+
   if (!fileBuffer) {
     return new Response("Document file unavailable", { status: 404 });
+  }
+
+  if (!document.fileBytes) {
+    await prisma.document
+      .update({
+        where: { id: document.id },
+        data: { fileBytes: fileBuffer },
+      })
+      .catch(() => {});
   }
 
   const mimeType = document.mimeType || "application/octet-stream";
