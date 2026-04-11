@@ -29,6 +29,16 @@ const updateActivitySchema = z.object({
   clientServiceId: z.string().optional(),
 });
 
+const quickUpdateActivitySchema = z.object({
+  activityId: z.string().min(1),
+  title: z.string().min(3),
+  description: z.string().optional(),
+  dueDate: z.string().min(1),
+  priority: z.nativeEnum(Priority),
+  status: z.nativeEnum(ActivityStatus),
+  clientServiceId: z.string().optional(),
+});
+
 const publicationProposalSchema = z.object({
   clientId: z.string().min(1),
   title: z.string().min(3),
@@ -39,6 +49,12 @@ const publicationProposalSchema = z.object({
 
 const activityMaterialSchema = z.object({
   activityId: z.string().min(1),
+  name: z.string().min(2),
+  materialUrl: z.string().url().optional(),
+});
+
+const updateActivityMaterialSchema = z.object({
+  materialId: z.string().min(1),
   name: z.string().min(2),
   materialUrl: z.string().url().optional(),
 });
@@ -200,6 +216,65 @@ export async function updateActivityStatusAction(formData: FormData) {
   });
 
   revalidatePath("/activities");
+  revalidatePath("/dashboard");
+}
+
+export async function updateActivityQuickAction(formData: FormData) {
+  const user = await requireUser();
+
+  if (user.role !== Role.ADMIN) {
+    throw new Error("Only admins can edit activities");
+  }
+
+  const parsed = quickUpdateActivitySchema.safeParse({
+    activityId: formData.get("activityId"),
+    title: formData.get("title"),
+    description: formData.get("description") || undefined,
+    dueDate: formData.get("dueDate"),
+    priority: formData.get("priority"),
+    status: formData.get("status"),
+    clientServiceId: formData.get("clientServiceId") || undefined,
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid activity quick update payload");
+  }
+
+  const activity = await prisma.activity.findUnique({
+    where: { id: parsed.data.activityId },
+    select: { id: true, clientId: true },
+  });
+
+  if (!activity) {
+    throw new Error("Activity not found");
+  }
+
+  if (parsed.data.clientServiceId) {
+    const service = await prisma.clientService.findUnique({
+      where: { id: parsed.data.clientServiceId },
+      select: { id: true, clientId: true },
+    });
+
+    if (!service || service.clientId !== activity.clientId) {
+      throw new Error("Invalid client service for this activity");
+    }
+  }
+
+  await prisma.activity.update({
+    where: { id: parsed.data.activityId },
+    data: {
+      title: parsed.data.title,
+      description: parsed.data.description,
+      dueDate: parseDateInputToUtcNoon(parsed.data.dueDate),
+      priority: parsed.data.priority,
+      status: parsed.data.status,
+      clientServiceId: parsed.data.clientServiceId || null,
+    },
+  });
+
+  revalidatePath("/activities");
+  revalidatePath(`/activities/${parsed.data.activityId}`);
+  revalidatePath("/calendar");
   revalidatePath("/dashboard");
 }
 
@@ -368,6 +443,112 @@ export async function createActivityMaterialAction(formData: FormData) {
   });
 
   revalidatePath("/activities");
+  revalidatePath("/calendar");
+  revalidatePath("/dashboard");
+}
+
+export async function updateActivityMaterialAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== Role.ADMIN) {
+    throw new Error("Only admins can edit materials");
+  }
+
+  const parsed = updateActivityMaterialSchema.safeParse({
+    materialId: formData.get("materialId"),
+    name: formData.get("name"),
+    materialUrl: formData.get("materialUrl") || undefined,
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid activity material update payload");
+  }
+
+  const approved = formData.get("approved") === "on";
+  const removeFile = formData.get("removeFile") === "on";
+  const fileEntry = formData.get("materialFile");
+  const file = fileEntry instanceof File && fileEntry.size > 0 ? fileEntry : null;
+
+  if (file) {
+    if (!ALLOWED_MATERIAL_MIME_TYPES.has(file.type)) {
+      throw new Error("Only PDF, PNG or JPG files are allowed");
+    }
+
+    if (file.size > MAX_MATERIAL_FILE_SIZE) {
+      throw new Error("File exceeds max size of 8MB");
+    }
+  }
+
+  const material = await prisma.activityMaterial.findUnique({
+    where: { id: parsed.data.materialId },
+    select: {
+      id: true,
+      activityId: true,
+      fileStoragePath: true,
+    },
+  });
+
+  if (!material) {
+    throw new Error("Material not found");
+  }
+
+  let nextFileStoragePath: string | null | undefined;
+  let nextFilePublicUrl: string | null | undefined;
+  let nextFileName: string | null | undefined;
+  let nextFileMimeType: string | null | undefined;
+  let nextFileSizeBytes: number | null | undefined;
+
+  if (file) {
+    if (material.fileStoragePath) {
+      await unlink(material.fileStoragePath).catch(() => {});
+    }
+
+    const extension = inferExtension(file.name, file.type);
+    const generatedName = `${Date.now()}-${crypto.randomUUID()}${extension}`;
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "materials");
+    await mkdir(uploadDir, { recursive: true });
+
+    const absolutePath = path.join(uploadDir, generatedName);
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(absolutePath, fileBuffer);
+
+    nextFileStoragePath = absolutePath;
+    nextFilePublicUrl = `/uploads/materials/${generatedName}`;
+    nextFileName = file.name;
+    nextFileMimeType = file.type;
+    nextFileSizeBytes = file.size;
+  } else if (removeFile) {
+    if (material.fileStoragePath) {
+      await unlink(material.fileStoragePath).catch(() => {});
+    }
+    nextFileStoragePath = null;
+    nextFilePublicUrl = null;
+    nextFileName = null;
+    nextFileMimeType = null;
+    nextFileSizeBytes = null;
+  }
+
+  await prisma.activityMaterial.update({
+    where: { id: material.id },
+    data: {
+      name: parsed.data.name,
+      materialUrl: parsed.data.materialUrl ?? null,
+      isApproved: approved,
+      approvedAt: approved ? new Date() : null,
+      approvedById: approved ? user.id : null,
+      ...(nextFileStoragePath !== undefined
+        ? {
+            fileStoragePath: nextFileStoragePath,
+            filePublicUrl: nextFilePublicUrl ?? null,
+            fileName: nextFileName ?? null,
+            fileMimeType: nextFileMimeType ?? null,
+            fileSizeBytes: nextFileSizeBytes ?? null,
+          }
+        : {}),
+    },
+  });
+
+  revalidatePath("/activities");
+  revalidatePath(`/activities/${material.activityId}`);
   revalidatePath("/calendar");
   revalidatePath("/dashboard");
 }

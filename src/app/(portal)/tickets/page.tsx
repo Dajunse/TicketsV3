@@ -1,4 +1,5 @@
-﻿import { Priority, TicketStatus } from "@prisma/client";
+import { Priority, TicketStatus } from "@prisma/client";
+import Link from "next/link";
 import {
   addTicketMessageAction,
   createAuthenticatedTicketAction,
@@ -6,6 +7,7 @@ import {
 } from "@/actions/ticket-actions";
 import { PageTitle } from "@/components/page-title";
 import { StatusBadge } from "@/components/status-badge";
+import { decryptSecret } from "@/lib/crypto";
 import { priorityLabel, ticketOriginLabel, ticketStatusLabel } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
@@ -13,9 +15,15 @@ import { formatDateTime } from "@/lib/utils";
 
 export default async function TicketsPage() {
   const context = await getTenantContext();
-  const where = context.clientId ? { clientId: context.clientId } : undefined;
+  const where = context.isAdmin
+    ? context.clientId
+      ? { clientId: context.clientId }
+      : undefined
+    : context.clientId
+      ? { clientId: context.clientId, status: { in: [TicketStatus.OPEN, TicketStatus.IN_PROGRESS] } }
+      : { id: "__no_client__" };
 
-  const [tickets, clients] = await Promise.all([
+  const [tickets, clients, publicTokenNote] = await Promise.all([
     prisma.ticket.findMany({
       where,
       include: {
@@ -29,18 +37,43 @@ export default async function TicketsPage() {
       take: 30,
     }),
     context.isAdmin ? prisma.client.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
+    context.isAdmin || !context.clientId
+      ? Promise.resolve(null)
+      : prisma.secureNote.findFirst({
+          where: {
+            clientId: context.clientId,
+            title: "Public ticket URL token",
+          },
+          orderBy: { createdAt: "desc" },
+        }),
   ]);
+
+  let publicTicketPath = "";
+  if (!context.isAdmin && context.client && publicTokenNote) {
+    try {
+      const token = decryptSecret({
+        ciphertext: publicTokenNote.ciphertext,
+        iv: publicTokenNote.iv,
+        authTag: publicTokenNote.authTag,
+      });
+      if (token) {
+        publicTicketPath = `/public/ticket/${context.client.publicTicketSlug}?token=${token}`;
+      }
+    } catch {
+      publicTicketPath = "";
+    }
+  }
 
   return (
     <section className="space-y-6">
       <PageTitle title="Tickets" subtitle="Soporte por cliente con historial y seguimiento." />
 
-      <article className="rounded-xl border border-zinc-200 bg-white p-4">
-        <h2 className="mb-3 font-title text-lg text-zinc-900">Nuevo ticket</h2>
-        <form action={createAuthenticatedTicketAction} className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm text-zinc-700">Cliente</label>
-            {context.isAdmin ? (
+      {context.isAdmin ? (
+        <article className="rounded-xl border border-zinc-200 bg-white p-4">
+          <h2 className="mb-3 font-title text-lg text-zinc-900">Nuevo ticket</h2>
+          <form action={createAuthenticatedTicketAction} className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm text-zinc-700">Cliente</label>
               <select name="clientId" required className="w-full rounded-lg px-3 py-2">
                 {(context.clientId ? clients.filter((c) => c.id === context.clientId) : clients).map((client) => (
                   <option key={client.id} value={client.id}>
@@ -48,44 +81,58 @@ export default async function TicketsPage() {
                   </option>
                 ))}
               </select>
-            ) : (
-              <input
-                name="clientId"
-                defaultValue={context.clientId ?? ""}
-                readOnly
-                className="w-full rounded-lg px-3 py-2 text-zinc-600"
-              />
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-zinc-700">Categoria</label>
-            <input name="category" required className="w-full rounded-lg px-3 py-2" placeholder="Soporte tecnico" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm text-zinc-700">Asunto</label>
-            <input name="subject" required className="w-full rounded-lg px-3 py-2" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm text-zinc-700">Descripcion</label>
-            <textarea name="description" required rows={4} className="w-full rounded-lg px-3 py-2" />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-zinc-700">Prioridad</label>
-            <select name="priority" defaultValue={Priority.MEDIUM} className="w-full rounded-lg px-3 py-2">
-              {Object.values(Priority).map((priority) => (
-                <option key={priority} value={priority}>
-                  {priorityLabel(priority)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white" type="submit">
-              Crear ticket
-            </button>
-          </div>
-        </form>
-      </article>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-zinc-700">Categoria</label>
+              <input name="category" required className="w-full rounded-lg px-3 py-2" placeholder="Soporte tecnico" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm text-zinc-700">Asunto</label>
+              <input name="subject" required className="w-full rounded-lg px-3 py-2" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm text-zinc-700">Descripcion</label>
+              <textarea name="description" required rows={4} className="w-full rounded-lg px-3 py-2" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-zinc-700">Prioridad</label>
+              <select name="priority" defaultValue={Priority.MEDIUM} className="w-full rounded-lg px-3 py-2">
+                {Object.values(Priority).map((priority) => (
+                  <option key={priority} value={priority}>
+                    {priorityLabel(priority)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white" type="submit">
+                Crear ticket
+              </button>
+            </div>
+          </form>
+        </article>
+      ) : (
+        <article className="rounded-xl border border-zinc-200 bg-white p-4">
+          <h2 className="font-title text-lg text-zinc-900">Levantar ticket</h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            Usa el portal publico para crear nuevos tickets. Aqui solo se muestran tus tickets abiertos.
+          </p>
+          {publicTicketPath ? (
+            <Link
+              href={publicTicketPath}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex rounded-lg bg-black px-4 py-2 text-sm font-medium text-white"
+            >
+              Ir al portal publico de tickets
+            </Link>
+          ) : (
+            <p className="mt-3 text-xs text-amber-700">
+              Tu URL publica de tickets aun no esta disponible. Solicita a tu administrador generar el token.
+            </p>
+          )}
+        </article>
+      )}
 
       <article className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4">
         <h2 className="font-title text-lg text-zinc-900">Historial</h2>

@@ -176,6 +176,7 @@ Credenciales demo del seed:
    - `BOOTSTRAP_ADMIN_EMAIL` (recomendado)
    - `BOOTSTRAP_ADMIN_PASSWORD` (recomendado, contrasena fuerte)
    - `BOOTSTRAP_ADMIN_NAME` (opcional)
+   - `BOOTSTRAP_ADMIN_FORCE_RESET` (opcional: `true` para forzar reset de password al iniciar)
 4. Build command:
 
 ```bash
@@ -194,6 +195,15 @@ npm run railway:start
 npm run prisma:seed
 ```
 
+### Recuperar acceso admin en Railway
+
+Si no puedes entrar con el admin:
+
+1. En Railway, define `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` (sin comillas y sin espacios al inicio/final).
+2. Redeploy del servicio.
+3. Revisa logs del arranque y valida que aparezca `[bootstrap-admin] Admin ready: ...`.
+4. Si necesitas reset inmediato aun sin password nuevo, usa temporalmente `BOOTSTRAP_ADMIN_FORCE_RESET=true`, redeploy, entra con `Admin12345!` y luego cambia la password.
+
 ## 10) Roadmap por Fases
 
 - **Fase 1 (MVP actual):** Auth, multi-tenant, actividades, tickets, documentos, panel admin base.
@@ -210,4 +220,13 @@ npm run prisma:seed
 - Rate limit + honeypot + validación Zod en servidor.
 - Credenciales externas en `SecureNote` cifradas (AES-GCM), no texto plano.
 - En producción: activar HTTPS, backups y rotación periódica de tokens públicos.
+
+## 12) Contexto Historico Vivo
+
+- Archivo de referencia: `CONTEXTO_PROYECTO.md`
+- Actualizacion automatica de historial tecnico:
+
+```bash
+npm run context:update
+```
 

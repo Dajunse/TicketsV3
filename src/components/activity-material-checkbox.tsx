@@ -6,11 +6,13 @@ import { updateActivityMaterialApprovalAction } from "@/actions/activity-actions
 type ActivityMaterialCheckboxProps = {
   materialId: string;
   checked: boolean;
+  showStatusLabel?: boolean;
 };
 
-export function ActivityMaterialCheckbox({ materialId, checked }: ActivityMaterialCheckboxProps) {
+export function ActivityMaterialCheckbox({ materialId, checked, showStatusLabel = true }: ActivityMaterialCheckboxProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending] = useTransition();
+  const statusLabel = isPending ? "Guardando..." : checked ? "Aprobado" : "Pendiente";
 
   return (
     <form ref={formRef} action={updateActivityMaterialApprovalAction}>
@@ -24,7 +26,7 @@ export function ActivityMaterialCheckbox({ materialId, checked }: ActivityMateri
           onChange={() => formRef.current?.requestSubmit()}
           className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400"
         />
-        {isPending ? "Guardando..." : checked ? "Aprobado" : "Pendiente"}
+        {showStatusLabel ? statusLabel : <span className="sr-only">{statusLabel}</span>}
       </label>
     </form>
   );

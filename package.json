@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
+    "context:update": "node scripts/update-context.mjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
     "railway:start": "npm run prisma:migrate:deploy && npm run bootstrap:admin && next start"
   },

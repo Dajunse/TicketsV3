@@ -98,7 +98,10 @@ export function CalendarMonthView({
               <div key={day.key} className={`relative h-20 sm:h-24 lg:h-28 xl:h-32 ${day.inMonth ? "bg-white" : "bg-zinc-50"}`}>
                 <Link
                   href={`/activities?day=${day.key}`}
-                  onMouseEnter={() => setActiveDayKey(day.key)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setActiveDayKey(day.key);
+                  }}
                   onFocus={() => setActiveDayKey(day.key)}
                   className={`group block h-full overflow-hidden p-2 transition-colors ${
                     activeDayKey === day.key || day.isSelected ? "bg-zinc-100" : "hover:bg-zinc-50"
@@ -162,7 +165,7 @@ export function CalendarMonthView({
           </div>
 
           <Link
-            href={`/activities?day=${activeDayKey}`}
+            href={`/activities/day?day=${activeDayKey}`}
             className="mt-4 inline-flex rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
           >
             Ver actividades del dia
