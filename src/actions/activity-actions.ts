@@ -10,6 +10,7 @@ import { requireUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit-log";
 import { sendAdminActivityMaterialCommentNotification } from "@/lib/email-notifications";
 import { prisma } from "@/lib/prisma";
+import { getMaterialUploadsDir } from "@/lib/uploads-paths";
 
 const activitySchema = z.object({
   clientId: z.string().min(1),
@@ -416,7 +417,7 @@ export async function createActivityMaterialAction(formData: FormData) {
   if (file) {
     const extension = inferExtension(file.name, file.type);
     const generatedName = `${Date.now()}-${crypto.randomUUID()}${extension}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "materials");
+    const uploadDir = getMaterialUploadsDir();
     await mkdir(uploadDir, { recursive: true });
 
     const absolutePath = path.join(uploadDir, generatedName);
@@ -505,7 +506,7 @@ export async function updateActivityMaterialAction(formData: FormData) {
 
     const extension = inferExtension(file.name, file.type);
     const generatedName = `${Date.now()}-${crypto.randomUUID()}${extension}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "materials");
+    const uploadDir = getMaterialUploadsDir();
     await mkdir(uploadDir, { recursive: true });
 
     const absolutePath = path.join(uploadDir, generatedName);

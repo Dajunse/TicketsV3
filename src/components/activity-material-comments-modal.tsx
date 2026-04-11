@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { addActivityMaterialCommentAction, markActivityMaterialCommentsSeenAction } from "@/actions/activity-actions";
 
 type MaterialCommentItem = {
@@ -45,6 +46,7 @@ export function ActivityMaterialCommentsModal({
   const hasUnread = hasUnreadClientComment && !wasSeen;
   const shouldUseCommentIcon = iconWhenHasComments && comments.length > 0;
   const buttonBaseClass = hasUnread ? "border-amber-300 bg-amber-50 text-amber-800" : "border-zinc-300 bg-white text-zinc-700";
+  const modalRoot = typeof document !== "undefined" ? document.body : null;
 
   if (iconWhenHasComments && comments.length === 0) {
     return null;
@@ -89,7 +91,8 @@ export function ActivityMaterialCommentsModal({
         )}
       </button>
 
-      {isOpen ? (
+      {isOpen && modalRoot
+        ? createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
             <div className="border-b border-zinc-200 px-4 py-3">
@@ -139,7 +142,10 @@ export function ActivityMaterialCommentsModal({
             </div>
           </div>
         </div>
-      ) : null}
+          ,
+          modalRoot,
+        )
+        : null}
     </>
   );
 }

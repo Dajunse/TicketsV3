@@ -3,26 +3,28 @@ import { access, readFile } from "fs/promises";
 import { Role } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getDefaultPublicMaterialUploadsDir, getMaterialUploadsDir } from "@/lib/uploads-paths";
 
 export const runtime = "nodejs";
 
 const INLINE_MIME_TYPES = new Set(["application/pdf", "image/png", "image/jpeg"]);
 
 function buildCandidatePaths(fileStoragePath: string | null, filePublicUrl: string | null) {
-  const candidates: string[] = [];
+  const candidates = new Set<string>();
 
   if (fileStoragePath) {
-    candidates.push(fileStoragePath);
+    candidates.add(fileStoragePath);
   }
 
   if (filePublicUrl?.startsWith("/uploads/materials/")) {
-    const relativePath = filePublicUrl.replace(/^\/+/, "");
-    if (!relativePath.includes("..")) {
-      candidates.push(path.join(process.cwd(), "public", relativePath));
+    const fileName = path.basename(filePublicUrl);
+    if (fileName && fileName !== "." && fileName !== "/") {
+      candidates.add(path.join(getMaterialUploadsDir(), fileName));
+      candidates.add(path.join(getDefaultPublicMaterialUploadsDir(), fileName));
     }
   }
 
-  return candidates;
+  return Array.from(candidates);
 }
 
 export async function GET(
