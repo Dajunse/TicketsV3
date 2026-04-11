@@ -11,6 +11,7 @@ import { ActivityStatusSelect } from "@/components/activity-status-select";
 import { PageTitle } from "@/components/page-title";
 import { StatusBadge } from "@/components/status-badge";
 import { activityStatusLabel, priorityLabel } from "@/lib/labels";
+import { getMaterialFileHref } from "@/lib/material-files";
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
 import { formatDate } from "@/lib/utils";
@@ -208,9 +209,9 @@ export default async function ActivityDetailPage({
                     ) : null}
                   </td>
                   <td className="px-3 py-2.5 text-center">
-                    {material.filePublicUrl ? (
+                    {getMaterialFileHref(material) ? (
                       <a
-                        href={material.filePublicUrl}
+                        href={getMaterialFileHref(material)!}
                         target="_blank"
                         rel="noreferrer"
                         title={material.fileName ?? "Descargar archivo"}

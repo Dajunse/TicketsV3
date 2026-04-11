@@ -9,6 +9,7 @@ import { ActivityStatusSelect } from "@/components/activity-status-select";
 import { PageTitle } from "@/components/page-title";
 import { StatusBadge } from "@/components/status-badge";
 import { activityStatusLabel, priorityLabel } from "@/lib/labels";
+import { getMaterialFileHref } from "@/lib/material-files";
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
 import { formatDate } from "@/lib/utils";
@@ -387,9 +388,9 @@ export default async function ActivitiesPage({
                                       </span>
                                     </td>
                                     <td className="px-2 py-1.5">
-                                      {material.filePublicUrl ? (
+                                      {getMaterialFileHref(material) ? (
                                         <a
-                                          href={material.filePublicUrl}
+                                          href={getMaterialFileHref(material)!}
                                           target="_blank"
                                           rel="noreferrer"
                                           className="text-zinc-700 underline underline-offset-2 hover:text-zinc-900"
@@ -530,9 +531,9 @@ export default async function ActivitiesPage({
                                 )}
                               </td>
                               <td className="px-3 py-2.5">
-                                {material.filePublicUrl ? (
+                                {getMaterialFileHref(material) ? (
                                   <a
-                                    href={material.filePublicUrl}
+                                    href={getMaterialFileHref(material)!}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-xs text-zinc-700 underline underline-offset-2 hover:text-zinc-900"

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateActivityMaterialAction } from "@/actions/activity-actions";
+import { getMaterialFileHref } from "@/lib/material-files";
 
 type ActivityMaterialEditModalProps = {
   material: {
@@ -20,6 +21,7 @@ export function ActivityMaterialEditModal({ material }: ActivityMaterialEditModa
   const [isOpen, setIsOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const materialFileHref = getMaterialFileHref(material);
 
   async function handleSubmit(formData: FormData) {
     setErrorMessage("");
@@ -105,9 +107,9 @@ export function ActivityMaterialEditModal({ material }: ActivityMaterialEditModa
               <div className="md:col-span-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
                 <p className="text-sm text-zinc-700">
                   Archivo actual:{" "}
-                  {material.filePublicUrl ? (
+                  {materialFileHref ? (
                     <a
-                      href={material.filePublicUrl}
+                      href={materialFileHref}
                       target="_blank"
                       rel="noreferrer"
                       className="text-zinc-900 underline underline-offset-2"
@@ -159,4 +161,3 @@ export function ActivityMaterialEditModal({ material }: ActivityMaterialEditModa
     </>
   );
 }
-
