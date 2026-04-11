@@ -98,16 +98,25 @@ export async function requireAdmin() {
 }
 
 export async function loginWithPassword(email: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    include: {
+      memberships: {
+        select: {
+          clientId: true,
+        },
+      },
+    },
+  });
   if (!user || !user.isActive) {
-    return false;
+    return null;
   }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
-    return false;
+    return null;
   }
 
   await createSession(user.id);
-  return true;
+  return user;
 }

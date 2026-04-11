@@ -65,6 +65,7 @@ model User {
   approvedPublicationProposals PublicationProposal[] @relation("PublicationApprovedBy")
   approvedActivityMaterials    ActivityMaterial[]    @relation("ActivityMaterialApprovedBy")
   activityMaterialComments     ActivityMaterialComment[]
+  auditLogs                    AuditLog[]
 }
 
 model Client {
@@ -85,6 +86,27 @@ model Client {
   documents             Document[]
   secureNotes           SecureNote[]
   publicSubmissionLogs  PublicTicketSubmissionLog[]
+  auditLogs             AuditLog[]
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorRole   Role?
+  clientId    String?
+  eventType   String
+  entityType  String?
+  entityId    String?
+  message     String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  actorUser   User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([clientId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model PublicationProposal {

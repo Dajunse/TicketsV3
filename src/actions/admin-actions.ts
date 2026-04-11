@@ -86,6 +86,13 @@ const createUserSchema = z.object({
   password: z.string().min(10),
 });
 
+const updateClientUserSchema = z.object({
+  userId: z.string().min(1),
+  name: z.string().min(2),
+  email: z.string().email(),
+  isActive: z.boolean(),
+});
+
 const rotatePublicTicketTokenSchema = z.object({
   clientId: z.string().min(1),
 });
@@ -220,6 +227,46 @@ export async function rotateClientPublicTicketTokenAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
+export async function updateClientUserAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = updateClientUserSchema.safeParse({
+    userId: formData.get("userId"),
+    name: formData.get("name"),
+    email: formData.get("email"),
+    isActive: formData.get("isActive") === "on",
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid client user update payload");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: { id: true, role: true },
+  });
+
+  if (!user || user.role !== Role.CLIENT) {
+    throw new Error("Client user not found");
+  }
+
+  await prisma.user.update({
+    where: { id: parsed.data.userId },
+    data: {
+      name: parsed.data.name,
+      email: parsed.data.email.toLowerCase(),
+      isActive: parsed.data.isActive,
+    },
+  });
+
+  if (!parsed.data.isActive) {
+    await prisma.session.deleteMany({
+      where: { userId: parsed.data.userId },
+    });
+  }
+
+  revalidatePath("/admin");
+}
+
 export async function resetClientUserPasswordAction(formData: FormData) {
   const admin = await requireAdmin();
   const parsed = resetClientPasswordSchema.safeParse({
@@ -293,6 +340,13 @@ const createServiceSchema = z.object({
   description: z.string().optional(),
 });
 
+const updateServiceSchema = z.object({
+  serviceId: z.string().min(1),
+  name: z.string().min(2),
+  description: z.string().optional(),
+  isActive: z.boolean(),
+});
+
 export async function createServiceCatalogAction(formData: FormData) {
   await requireAdmin();
   const parsed = createServiceSchema.safeParse({
@@ -307,6 +361,32 @@ export async function createServiceCatalogAction(formData: FormData) {
     data: parsed.data,
   });
   revalidatePath("/admin");
+}
+
+export async function updateServiceCatalogAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = updateServiceSchema.safeParse({
+    serviceId: formData.get("serviceId"),
+    name: formData.get("name"),
+    description: formData.get("description") || undefined,
+    isActive: formData.get("isActive") === "on",
+  });
+  if (!parsed.success) {
+    throw new Error("Invalid service update payload");
+  }
+
+  await prisma.serviceCatalog.update({
+    where: { id: parsed.data.serviceId },
+    data: {
+      name: parsed.data.name,
+      description: parsed.data.description,
+      isActive: parsed.data.isActive,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/activities");
+  revalidatePath("/dashboard");
 }
 
 const assignServiceSchema = z.object({

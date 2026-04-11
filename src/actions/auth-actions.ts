@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { clearSession, loginWithPassword } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit-log";
+import { clearSession, getCurrentUser, loginWithPassword } from "@/lib/auth";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -16,18 +17,43 @@ export async function loginAction(_: { error?: string } | undefined, formData: F
   });
 
   if (!parsed.success) {
-    return { error: "Credenciales inválidas." };
+    return { error: "Credenciales invalidas." };
   }
 
-  const success = await loginWithPassword(parsed.data.email, parsed.data.password);
-  if (!success) {
-    return { error: "Correo o contraseña incorrectos." };
+  const user = await loginWithPassword(parsed.data.email, parsed.data.password);
+  if (!user) {
+    return { error: "Correo o contrasena incorrectos." };
   }
+
+  const clientId = user.role === "CLIENT" ? user.memberships[0]?.clientId ?? null : null;
+
+  await createAuditLog({
+    actorUserId: user.id,
+    actorRole: user.role,
+    clientId,
+    eventType: "AUTH_LOGIN",
+    entityType: "SESSION",
+    message: `Inicio de sesion de ${user.email}`,
+  });
 
   redirect("/dashboard");
 }
 
 export async function logoutAction() {
+  const user = await getCurrentUser();
+  if (user) {
+    const clientId = user.role === "CLIENT" ? user.memberships[0]?.clientId ?? null : null;
+    await createAuditLog({
+      actorUserId: user.id,
+      actorRole: user.role,
+      clientId,
+      eventType: "AUTH_LOGOUT",
+      entityType: "SESSION",
+      message: `Cierre de sesion de ${user.email}`,
+    });
+  }
+
   await clearSession();
   redirect("/login");
 }
+

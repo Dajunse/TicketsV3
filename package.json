@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -13,7 +14,7 @@
     "prisma:seed": "prisma db seed",
     "context:update": "node scripts/update-context.mjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
-    "railway:start": "npm run prisma:migrate:deploy && npm run bootstrap:admin && next start"
+    "railway:start": "npm run prisma:generate && npm run prisma:migrate:deploy && npm run bootstrap:admin && next start"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -2,15 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateClientAction } from "@/actions/admin-actions";
+import { updateClientUserAction } from "@/actions/admin-actions";
 
-type EditClient = {
-  id: string;
-  name: string;
-  slug: string;
+type EditClientUserModalProps = {
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    isActive: boolean;
+    clientName: string;
+  };
 };
 
-export function EditClientModal({ client }: { client: EditClient }) {
+export function EditClientUserModal({ user }: EditClientUserModalProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -20,7 +24,7 @@ export function EditClientModal({ client }: { client: EditClient }) {
     setErrorMessage("");
     startTransition(async () => {
       try {
-        await updateClientAction(formData);
+        await updateClientUserAction(formData);
         setIsOpen(false);
         router.refresh();
       } catch (error) {
@@ -35,8 +39,8 @@ export function EditClientModal({ client }: { client: EditClient }) {
         type="button"
         onClick={() => setIsOpen(true)}
         className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-        aria-label={`Editar cliente ${client.name}`}
-        title="Editar cliente"
+        aria-label={`Editar usuario ${user.email}`}
+        title="Editar usuario"
       >
         <svg viewBox="0 0 640 640" className="h-4 w-4" aria-hidden="true">
           <path
@@ -47,10 +51,10 @@ export function EditClientModal({ client }: { client: EditClient }) {
       </button>
 
       {isOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-black">Editar cliente</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-4 shadow-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-title text-lg text-zinc-900">Editar usuario cliente</h3>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -60,40 +64,51 @@ export function EditClientModal({ client }: { client: EditClient }) {
               </button>
             </div>
 
-            <form action={handleSubmit} className="space-y-4">
-              <input type="hidden" name="id" value={client.id} />
+            <form action={handleSubmit} className="space-y-3">
+              <input type="hidden" name="userId" value={user.id} />
+              <p className="text-xs text-zinc-500">Cliente: {user.clientName}</p>
 
               <div>
-                <label className="text-sm font-medium">Nombre</label>
+                <label className="mb-1 block text-sm text-zinc-700">Nombre</label>
                 <input
                   name="name"
                   required
-                  defaultValue={client.name}
-                  className="w-full rounded-lg border border-zinc-200 p-2 text-sm"
+                  defaultValue={user.name ?? ""}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2"
+                  placeholder="Nombre del usuario"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium">Slug (URL)</label>
+                <label className="mb-1 block text-sm text-zinc-700">Correo</label>
                 <input
-                  name="slug"
+                  name="email"
+                  type="email"
                   required
-                  defaultValue={client.slug}
-                  className="w-full rounded-lg border border-zinc-200 p-2 text-sm"
+                  defaultValue={user.email}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2"
                 />
               </div>
 
+              <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  defaultChecked={user.isActive}
+                  className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400"
+                />
+                Usuario activo
+              </label>
+
               {errorMessage ? (
-                <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-                  {errorMessage}
-                </p>
+                <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{errorMessage}</p>
               ) : null}
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end">
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md bg-black px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isPending ? "Guardando..." : "Guardar cambios"}
                 </button>
@@ -105,3 +120,4 @@ export function EditClientModal({ client }: { client: EditClient }) {
     </>
   );
 }
+

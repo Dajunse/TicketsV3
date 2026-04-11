@@ -43,6 +43,11 @@ export function AppShell({
               Administracion
             </Link>
           ) : null}
+          {role === "ADMIN" ? (
+            <Link className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-900" href="/bitacora">
+              Bitacora
+            </Link>
+          ) : null}
         </nav>
         <form action={logoutAction} className="mt-6">
           <button

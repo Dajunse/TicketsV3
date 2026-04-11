@@ -6,6 +6,7 @@ import { resetClientUserPasswordAction } from "@/actions/admin-actions";
 type Props = {
   clientId: string;
   userId: string;
+  compact?: boolean;
 };
 
 function randomIndex(max: number) {
@@ -46,13 +47,13 @@ function generateSuggestedPassword(length = 16) {
   return chars.join("");
 }
 
-export function ResetClientPasswordForm({ clientId, userId }: Props) {
+export function ResetClientPasswordForm({ clientId, userId, compact = false }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [copied, setCopied] = useState(false);
 
   return (
-    <div className="mt-2 space-y-2">
+    <div className={`${compact ? "space-y-2" : "mt-2 space-y-2"}`}>
       {!isOpen ? (
         <button
           type="button"

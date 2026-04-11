@@ -7,6 +7,7 @@ import { ActivityStatus, Priority, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit-log";
 import { sendAdminActivityMaterialCommentNotification } from "@/lib/email-notifications";
 import { prisma } from "@/lib/prisma";
 
@@ -592,6 +593,22 @@ export async function updateActivityMaterialApprovalAction(formData: FormData) {
     },
   });
 
+  await createAuditLog({
+    actorUserId: user.id,
+    actorRole: user.role,
+    clientId: material.activity.clientId,
+    eventType: approved ? "MATERIAL_APPROVED" : "MATERIAL_UNAPPROVED",
+    entityType: "ACTIVITY_MATERIAL",
+    entityId: material.id,
+    message: `${user.role === "CLIENT" ? "Cliente" : "Administrador"} ${
+      approved ? "aprobo" : "marco como pendiente"
+    } un material`,
+    metadata: {
+      materialId: material.id,
+      approved,
+    },
+  });
+
   revalidatePath("/activities");
   revalidatePath("/calendar");
   revalidatePath("/dashboard");
@@ -641,6 +658,21 @@ export async function addActivityMaterialCommentAction(formData: FormData) {
       materialId: material.id,
       authorId: user.id,
       body: parsed.data.body,
+    },
+  });
+
+  await createAuditLog({
+    actorUserId: user.id,
+    actorRole: user.role,
+    clientId: material.activity.clientId,
+    eventType: "MATERIAL_COMMENT_CREATED",
+    entityType: "ACTIVITY_MATERIAL",
+    entityId: material.id,
+    message: `${user.role === "CLIENT" ? "Cliente" : "Administrador"} agrego un comentario en material`,
+    metadata: {
+      materialId: material.id,
+      activityId: material.activity.id,
+      bodyPreview: parsed.data.body.slice(0, 160),
     },
   });
 
