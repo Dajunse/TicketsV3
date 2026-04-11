@@ -18,3 +18,11 @@ export function getMaterialUploadsDir() {
 export function getDefaultPublicMaterialUploadsDir() {
   return path.join(process.cwd(), "public", "uploads", "materials");
 }
+
+export function getDocumentUploadsDir() {
+  return path.join(getUploadsRootDir(), "documents");
+}
+
+export function getDefaultPublicDocumentUploadsDir() {
+  return path.join(process.cwd(), "public", "uploads", "documents");
+}

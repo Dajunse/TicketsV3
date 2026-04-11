@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
+import { clearAuditLogAction } from "@/actions/bitacora-actions";
 import { PageTitle } from "@/components/page-title";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -119,6 +120,12 @@ export default async function BitacoraPage({
     return queryString ? `/bitacora?${queryString}` : "/bitacora";
   };
 
+  const exportQuery = new URLSearchParams();
+  if (params.clientId) exportQuery.set("clientId", params.clientId);
+  if (params.userId) exportQuery.set("userId", params.userId);
+  if (params.eventType) exportQuery.set("eventType", params.eventType);
+  const exportHref = exportQuery.toString() ? `/bitacora/export?${exportQuery.toString()}` : "/bitacora/export";
+
   return (
     <section className="space-y-6">
       <PageTitle title="Bitacora" subtitle="Registro de acciones del sistema para soporte y evidencia." />
@@ -168,6 +175,33 @@ export default async function BitacoraPage({
             Filtrar
           </button>
         </form>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Link
+            href={exportHref}
+            className="rounded-[20px] border border-zinc-300 bg-white px-3 py-1 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+          >
+            Exportar CSV
+          </Link>
+
+          <form action={clearAuditLogAction} className="flex flex-wrap items-center gap-2">
+            {params.clientId ? <input type="hidden" name="clientId" value={params.clientId} /> : null}
+            {params.userId ? <input type="hidden" name="userId" value={params.userId} /> : null}
+            {params.eventType ? <input type="hidden" name="eventType" value={params.eventType} /> : null}
+            <input
+              name="confirmText"
+              required
+              placeholder='Escribe "LIMPIAR"'
+              className="rounded-[20px] border border-zinc-300 bg-white px-3 py-1 text-sm text-zinc-900"
+            />
+            <button
+              type="submit"
+              className="rounded-[20px] border border-rose-200 bg-rose-50 px-3 py-1 text-sm font-medium text-rose-700 hover:bg-rose-100"
+            >
+              Limpiar bitacora
+            </button>
+          </form>
+        </div>
       </article>
 
       <article className="rounded-xl border border-zinc-200 bg-white p-4">

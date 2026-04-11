@@ -15,6 +15,7 @@ import {
   hashPublicToken,
 } from "@/lib/public-ticket";
 import { prisma } from "@/lib/prisma";
+import { getDefaultPublicDocumentUploadsDir, getDocumentUploadsDir } from "@/lib/uploads-paths";
 
 const createClientSchema = z.object({
   name: z.string().min(2),
@@ -456,7 +457,7 @@ export async function createDocumentAction(formData: FormData) {
   if (file) {
     const fileExt = path.extname(file.name);
     const generatedName = `${Date.now()}-${crypto.randomUUID()}${fileExt}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "documents");
+    const uploadDir = getDocumentUploadsDir();
     await mkdir(uploadDir, { recursive: true });
     const absolutePath = path.join(uploadDir, generatedName);
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -509,9 +510,17 @@ export async function deleteDocumentAction(formData: FormData) {
   }
 
   if (document.storagePath.startsWith("/uploads/documents/")) {
-    const relativeStorage = document.storagePath.replace(/^\//, "");
-    const absolutePath = path.join(process.cwd(), "public", relativeStorage);
-    await unlink(absolutePath).catch(() => {});
+    const fileName = path.basename(document.storagePath);
+    const candidatePaths = [
+      path.join(getDocumentUploadsDir(), fileName),
+      path.join(getDefaultPublicDocumentUploadsDir(), fileName),
+    ];
+
+    for (const filePath of candidatePaths) {
+      await unlink(filePath).catch(() => {});
+    }
+  } else if (path.isAbsolute(document.storagePath)) {
+    await unlink(document.storagePath).catch(() => {});
   }
 
   await prisma.document.delete({

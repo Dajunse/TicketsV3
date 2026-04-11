@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TicketStatus } from "@prisma/client";
+import { ActivityStatus, TicketStatus } from "@prisma/client";
 import { StatusBadge } from "@/components/status-badge";
 import { activityStatusLabel } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
@@ -9,9 +9,9 @@ import { formatDate } from "@/lib/utils";
 export default async function DashboardPage() {
   const context = await getTenantContext();
   const where = context.clientId ? { clientId: context.clientId } : undefined;
-  const pendingApprovalWhere = where
-    ? { ...where, materials: { some: { isApproved: false } } }
-    : { materials: { some: { isApproved: false } } };
+  const clientPendingActivitiesWhere = where
+    ? { ...where, status: { in: [ActivityStatus.PENDING, ActivityStatus.IN_PROGRESS] as ActivityStatus[] } }
+    : { status: { in: [ActivityStatus.PENDING, ActivityStatus.IN_PROGRESS] as ActivityStatus[] } };
 
   const [upcomingActivities, recentDone, openTickets, closedTickets, docs] = await Promise.all([
     prisma.activity.findMany({
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
         ? where
           ? { ...where, dueDate: { gte: new Date() } }
           : { dueDate: { gte: new Date() } }
-        : pendingApprovalWhere,
+        : clientPendingActivitiesWhere,
       orderBy: { dueDate: "asc" },
       take: context.isAdmin ? 5 : 12,
     }),

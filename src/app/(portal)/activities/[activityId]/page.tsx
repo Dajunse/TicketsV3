@@ -6,6 +6,7 @@ import {
 } from "@/actions/activity-actions";
 import { ActivityQuickEditModal } from "@/components/activity-quick-edit-modal";
 import { ActivityMaterialCommentsModal } from "@/components/activity-material-comments-modal";
+import { ActivityMaterialCheckbox } from "@/components/activity-material-checkbox";
 import { ActivityMaterialEditModal } from "@/components/activity-material-edit-modal";
 import { ActivityStatusSelect } from "@/components/activity-status-select";
 import { PageTitle } from "@/components/page-title";
@@ -179,6 +180,7 @@ export default async function ActivityDetailPage({
                 <th className="px-3 py-2 text-center font-medium">Archivo</th>
                 <th className="px-3 py-2 text-left font-medium">Estado</th>
                 <th className="px-3 py-2 text-left font-medium">Validacion</th>
+                {!context.isAdmin ? <th className="px-3 py-2 text-center font-medium">Aprobacion</th> : null}
                 <th className="px-3 py-2 text-center font-medium">Comentarios</th>
                 {context.isAdmin ? <th className="px-3 py-2 text-center font-medium">Acciones</th> : null}
               </tr>
@@ -248,13 +250,22 @@ export default async function ActivityDetailPage({
                       <p className="text-xs text-zinc-500">{formatDate(material.approvedAt)}</p>
                     ) : null}
                   </td>
+                  {!context.isAdmin ? (
+                    <td className="px-3 py-2.5 text-center">
+                      <ActivityMaterialCheckbox
+                        materialId={material.id}
+                        checked={material.isApproved}
+                        showStatusLabel={false}
+                      />
+                    </td>
+                  ) : null}
                   <td className="px-3 py-2.5 text-center">
                     <ActivityMaterialCommentsModal
                       materialId={material.id}
                       materialName={material.name}
                       isAdmin={context.isAdmin}
                       hasUnreadClientComment={material.hasUnreadClientComment}
-                      iconWhenHasComments
+                      iconWhenHasComments={context.isAdmin}
                       comments={material.comments.map((comment) => ({
                         id: comment.id,
                         body: comment.body,

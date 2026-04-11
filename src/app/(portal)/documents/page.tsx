@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createDocumentAction, deleteDocumentAction } from "@/actions/admin-actions";
 import { PageTitle } from "@/components/page-title";
+import { getDocumentFileHref } from "@/lib/document-files";
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
 import { formatDate } from "@/lib/utils";
@@ -94,7 +95,7 @@ export default async function DocumentsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Link
-                  href={doc.storagePath}
+                  href={getDocumentFileHref(doc)}
                   target="_blank"
                   className="rounded-md border border-zinc-300 bg-black px-3 py-1.5 text-sm text-white"
                 >
