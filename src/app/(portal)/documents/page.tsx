@@ -29,7 +29,7 @@ export default async function DocumentsPage() {
 
       {context.isAdmin ? (
         <article className="rounded-xl border border-zinc-200 bg-white p-4">
-          <h2 className="mb-3 font-title text-lg text-zinc-900">Subir documento (metadata)</h2>
+          <h2 className="mb-3 font-title text-lg text-zinc-900">Subir documento</h2>
           <form action={createDocumentAction} className="grid gap-3 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm text-zinc-700">Cliente</label>
@@ -42,26 +42,36 @@ export default async function DocumentsPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-700">Nombre del archivo</label>
-              <input name="filename" required className="w-full rounded-lg px-3 py-2" />
-            </div>
-            <div>
               <label className="mb-1 block text-sm text-zinc-700">Titulo</label>
               <input name="title" required className="w-full rounded-lg px-3 py-2" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-zinc-700">Archivo (opcional si usas URL)</label>
+              <input
+                name="documentFile"
+                type="file"
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+              />
             </div>
             <div>
               <label className="mb-1 block text-sm text-zinc-700">Tipo MIME (opcional)</label>
               <input name="mimeType" className="w-full rounded-lg px-3 py-2" placeholder="application/pdf" />
             </div>
+            <div>
+              <label className="mb-1 block text-sm text-zinc-700">Nombre del archivo (si usas URL)</label>
+              <input name="filename" className="w-full rounded-lg px-3 py-2" />
+            </div>
             <div className="md:col-span-2">
-              <label className="mb-1 block text-sm text-zinc-700">URL o ruta de almacenamiento</label>
+              <label className="mb-1 block text-sm text-zinc-700">URL externa o ruta (opcional si subes archivo)</label>
               <input
                 name="storagePath"
-                required
                 className="w-full rounded-lg px-3 py-2"
                 placeholder="https://bucket/archivo.pdf"
               />
             </div>
+            <p className="md:col-span-2 text-xs text-zinc-500">
+              Sube un archivo directamente o registra un enlace externo con nombre de archivo.
+            </p>
             <div className="md:col-span-2">
               <button className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white" type="submit">
                 Guardar documento

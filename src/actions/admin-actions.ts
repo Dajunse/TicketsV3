@@ -1,7 +1,9 @@
 "use server";
 
 import crypto from "node:crypto";
+import path from "node:path";
 import bcrypt from "bcryptjs";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { CredentialType, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -425,9 +427,9 @@ export async function assignServiceToClientAction(formData: FormData) {
 const createDocumentSchema = z.object({
   clientId: z.string().min(1),
   title: z.string().min(2),
-  filename: z.string().min(2),
+  filename: z.string().optional(),
   mimeType: z.string().optional(),
-  storagePath: z.string().min(3),
+  storagePath: z.string().optional(),
 });
 
 export async function createDocumentAction(formData: FormData) {
@@ -435,16 +437,50 @@ export async function createDocumentAction(formData: FormData) {
   const parsed = createDocumentSchema.safeParse({
     clientId: formData.get("clientId"),
     title: formData.get("title"),
-    filename: formData.get("filename"),
+    filename: formData.get("filename") || undefined,
     mimeType: formData.get("mimeType") || undefined,
-    storagePath: formData.get("storagePath"),
+    storagePath: formData.get("storagePath") || undefined,
   });
   if (!parsed.success) {
     throw new Error("Invalid document payload");
   }
 
+  const fileEntry = formData.get("documentFile");
+  const file = fileEntry instanceof File && fileEntry.size > 0 ? fileEntry : null;
+
+  let filename = parsed.data.filename?.trim() || "";
+  let storagePath = parsed.data.storagePath?.trim() || "";
+  let mimeType = parsed.data.mimeType?.trim() || "";
+  let sizeBytes: number | undefined;
+
+  if (file) {
+    const fileExt = path.extname(file.name);
+    const generatedName = `${Date.now()}-${crypto.randomUUID()}${fileExt}`;
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "documents");
+    await mkdir(uploadDir, { recursive: true });
+    const absolutePath = path.join(uploadDir, generatedName);
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(absolutePath, fileBuffer);
+
+    filename = file.name;
+    storagePath = `/uploads/documents/${generatedName}`;
+    mimeType = file.type || mimeType || "application/octet-stream";
+    sizeBytes = file.size;
+  } else {
+    if (!filename || !storagePath) {
+      throw new Error("Provide a file upload or storage URL + filename");
+    }
+  }
+
   await prisma.document.create({
-    data: parsed.data,
+    data: {
+      clientId: parsed.data.clientId,
+      title: parsed.data.title,
+      filename,
+      mimeType: mimeType || null,
+      storagePath,
+      sizeBytes,
+    },
   });
   revalidatePath("/documents");
   revalidatePath("/dashboard");
@@ -463,8 +499,23 @@ export async function deleteDocumentAction(formData: FormData) {
     throw new Error("Invalid document delete payload");
   }
 
-  await prisma.document.delete({
+  const document = await prisma.document.findUnique({
     where: { id: parsed.data.documentId },
+    select: { id: true, storagePath: true },
+  });
+
+  if (!document) {
+    throw new Error("Document not found");
+  }
+
+  if (document.storagePath.startsWith("/uploads/documents/")) {
+    const relativeStorage = document.storagePath.replace(/^\//, "");
+    const absolutePath = path.join(process.cwd(), "public", relativeStorage);
+    await unlink(absolutePath).catch(() => {});
+  }
+
+  await prisma.document.delete({
+    where: { id: document.id },
   });
   revalidatePath("/documents");
   revalidatePath("/dashboard");
